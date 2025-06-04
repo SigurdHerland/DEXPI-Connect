@@ -1,0 +1,438 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1000px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="XMP_7854">XMP_7854</option>
+                                
+                                    <option value="XMP_7853">XMP_7853</option>
+                                
+                                    <option value="XMP_7860">XMP_7860</option>
+                                
+                                    <option value="XMP_7859">XMP_7859</option>
+                                
+                                    <option value="XMP_7884">XMP_7884</option>
+                                
+                                    <option value="XMP_7918">XMP_7918</option>
+                                
+                                    <option value="XMP_7917">XMP_7917</option>
+                                
+                                    <option value="XMP_7924">XMP_7924</option>
+                                
+                                    <option value="XMP_7923">XMP_7923</option>
+                                
+                                    <option value="XMP_7938">XMP_7938</option>
+                                
+                                    <option value="XMP_7937">XMP_7937</option>
+                                
+                                    <option value="XMP_7865">XMP_7865</option>
+                                
+                                    <option value="XMP_7790">XMP_7790</option>
+                                
+                                    <option value="XMP_7871">XMP_7871</option>
+                                
+                                    <option value="XMP_7794">XMP_7794</option>
+                                
+                                    <option value="XMP_7875">XMP_7875</option>
+                                
+                                    <option value="XMP_7798">XMP_7798</option>
+                                
+                                    <option value="XMP_7879">XMP_7879</option>
+                                
+                                    <option value="XMP_7786">XMP_7786</option>
+                                
+                                    <option value="XMP_7943">XMP_7943</option>
+                                
+                                    <option value="XMP_7950">XMP_7950</option>
+                                
+                                    <option value="XMP_7955">XMP_7955</option>
+                                
+                                    <option value="XMP_7958">XMP_7958</option>
+                                
+                                    <option value="XMP_7933">XMP_7933</option>
+                                
+                                    <option value="XMP_7827">XMP_7827</option>
+                                
+                                    <option value="XMP_7929">XMP_7929</option>
+                                
+                                    <option value="XMP_7883">XMP_7883</option>
+                                
+                                    <option value="XMP_7820">XMP_7820</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_7854", "label": "OffPageReference", "position": [35.0, 285.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-20045-01"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_7853", "label": "NetworkSegment_1", "segmentCordinates": [[88.0, 394.0], [540.0, 394.0], [540.0, 285.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7857", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_7860", "label": "OffPageReference", "position": [35.0, 284.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-20075-01"}, {"NrofConnections": 2, "color": "#3cb44b", "font": {"color": "white"}, "id": "XMP_7859", "label": "NetworkSegment_2", "segmentCordinates": [[88.0, 314.0], [460.0, 314.0], [460.0, 284.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7863", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_7884", "label": "OffPageReference", "position": [35.0, 284.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-20075-01"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_7918", "label": "OffPageReference", "position": [35.0, 231.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-20030-01"}, {"NrofConnections": 2, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_7917", "label": "NetworkSegment_9", "segmentCordinates": [[88.0, 234.0], [98.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7921", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_7924", "label": "OffPageReference", "position": [35.0, 471.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-20060-01"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_7923", "label": "NetworkSegment_13", "segmentCordinates": [[88.0, 474.0], [90.0, 474.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7927", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_7938", "label": "OffPageReference", "position": [35.0, 285.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-20005-01"}, {"NrofConnections": 2, "color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_7937", "label": "NetworkSegment_15", "segmentCordinates": [[88.0, 433.0], [580.0, 433.0], [580.0, 285.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7941", "type": "segment"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_7865", "label": "NetworkSegment_3", "segmentCordinates": [[460.0, 280.0], [460.0, 274.0], [460.0, 282.0], [460.0, 282.0], [460.0, 280.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7869", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_7790", "isPartofSegment": null, "label": "Flange_XMP_7790", "segmentCordinates": [[460.0, 282.0], [460.0, 282.0], [460.0, 280.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_7871", "label": "NetworkSegment_4", "segmentCordinates": [[500.0, 280.0], [500.0, 274.0], [500.0, 282.0], [500.0, 282.0], [500.0, 280.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7869", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_7794", "isPartofSegment": null, "label": "Flange_XMP_7794", "segmentCordinates": [[500.0, 282.0], [500.0, 282.0], [500.0, 280.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_7875", "label": "NetworkSegment_5", "segmentCordinates": [[540.0, 281.0], [540.0, 274.0], [540.0, 283.0], [540.0, 283.0], [540.0, 281.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7869", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_7798", "isPartofSegment": null, "label": "Flange_XMP_7798", "segmentCordinates": [[540.0, 283.0], [540.0, 283.0], [540.0, 281.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_7879", "label": "NetworkSegment_6", "segmentCordinates": [[580.0, 281.0], [580.0, 274.0], [580.0, 283.0], [580.0, 283.0], [580.0, 281.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7869", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_7786", "isPartofSegment": null, "label": "Flange_XMP_7786", "segmentCordinates": [[580.0, 283.0], [580.0, 283.0], [580.0, 281.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_7943", "label": "NetworkSegment_10", "segmentCordinates": [[98.0, 234.0], [115.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7921", "type": "segment"}, {"color": "#f58231", "font": {"color": "white"}, "id": "XMP_7950", "isPartofSegment": "XMP_7955", "label": "PipeTee_XMP_7950", "position": [[720.0, 234.0], [720.0, 234.0], [720.0, 234.0], [720.0, 234.0]], "segmentCordinates": [[117.0, 234.0], [720.0, 234.0], [720.0, 234.0], [720.0, 234.0], [720.0, 234.0], [720.0, 234.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_7921", "type": "component"}, {"NrofConnections": 3, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_7955", "label": "NetworkSegment_11", "segmentCordinates": [[117.0, 234.0], [720.0, 234.0], [720.0, 234.0], [720.0, 234.0], [720.0, 234.0], [720.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7921", "type": "segment"}, {"NrofConnections": 2, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_7958", "label": "NetworkSegment_12", "segmentCordinates": [[720.0, 234.0], [763.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7921", "type": "segment"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_7933", "label": "NetworkSegment_14", "segmentCordinates": [[92.0, 474.0], [708.0, 474.0], [708.0002, 285.0], [708.0, 283.0], [708.0, 283.0], [708.0, 285.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7927", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_7827", "isPartofSegment": null, "label": "Flange_XMP_7827", "segmentCordinates": [[708.0, 283.0], [708.0, 283.0], [708.0, 285.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_7929", "label": "NetworkSegment_7", "segmentCordinates": [[708.0, 281.0], [708.0, 274.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7869", "type": "segment"}, {"NrofConnections": 2, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_7883", "label": "NetworkSegment_8", "segmentCordinates": [[88.0, 354.0], [500.0, 354.0], [500.0, 284.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_7887", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_7820", "isPartofSegment": null, "label": "Flange_XMP_7820", "segmentCordinates": [[440.0, 274.0], [441.0, 274.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "XMP_7854", "to": "XMP_7853", "width": 1}, {"arrows": "to", "from": "XMP_7860", "to": "XMP_7859", "width": 1}, {"arrows": "to", "from": "XMP_7884", "to": "XMP_7859", "width": 1}, {"arrows": "to", "from": "XMP_7918", "to": "XMP_7917", "width": 1}, {"arrows": "to", "from": "XMP_7924", "to": "XMP_7923", "width": 1}, {"arrows": "to", "from": "XMP_7938", "to": "XMP_7937", "width": 1}, {"arrows": "to", "from": "XMP_7865", "to": "XMP_7790", "width": 1}, {"arrows": "to", "from": "XMP_7871", "to": "XMP_7794", "width": 1}, {"arrows": "to", "from": "XMP_7875", "to": "XMP_7798", "width": 1}, {"arrows": "to", "from": "XMP_7879", "to": "XMP_7786", "width": 1}, {"arrows": "to", "from": "XMP_7917", "to": "XMP_7943", "width": 1}, {"arrows": "to", "from": "XMP_7950", "to": "XMP_7955", "width": 1}, {"arrows": "to", "from": "XMP_7955", "to": "XMP_7958", "width": 1}, {"arrows": "to", "from": "XMP_7933", "to": "XMP_7827", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

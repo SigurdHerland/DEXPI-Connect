@@ -1,0 +1,1111 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1000px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 1000px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="XMP_3885">XMP_3885</option>
+                                
+                                    <option value="XMP_3884">XMP_3884</option>
+                                
+                                    <option value="XMP_4065">XMP_4065</option>
+                                
+                                    <option value="XMP_4064">XMP_4064</option>
+                                
+                                    <option value="XMP_4155">XMP_4155</option>
+                                
+                                    <option value="XMP_4154">XMP_4154</option>
+                                
+                                    <option value="XMP_4209">XMP_4209</option>
+                                
+                                    <option value="XMP_4205">XMP_4205</option>
+                                
+                                    <option value="XMP_4243">XMP_4243</option>
+                                
+                                    <option value="XMP_4242">XMP_4242</option>
+                                
+                                    <option value="XMP_4303">XMP_4303</option>
+                                
+                                    <option value="XMP_4302">XMP_4302</option>
+                                
+                                    <option value="XMP_4310">XMP_4310</option>
+                                
+                                    <option value="XMP_4309">XMP_4309</option>
+                                
+                                    <option value="XMP_4325">XMP_4325</option>
+                                
+                                    <option value="XMP_4324">XMP_4324</option>
+                                
+                                    <option value="XMP_4329">XMP_4329</option>
+                                
+                                    <option value="XMP_4328">XMP_4328</option>
+                                
+                                    <option value="XMP_4335">XMP_4335</option>
+                                
+                                    <option value="XMP_4334">XMP_4334</option>
+                                
+                                    <option value="XMP_4343">XMP_4343</option>
+                                
+                                    <option value="XMP_4342">XMP_4342</option>
+                                
+                                    <option value="XMP_4349">XMP_4349</option>
+                                
+                                    <option value="XMP_4348">XMP_4348</option>
+                                
+                                    <option value="XMP_4355">XMP_4355</option>
+                                
+                                    <option value="XMP_4354">XMP_4354</option>
+                                
+                                    <option value="XMP_4373">XMP_4373</option>
+                                
+                                    <option value="XMP_4372">XMP_4372</option>
+                                
+                                    <option value="XMP_4379">XMP_4379</option>
+                                
+                                    <option value="XMP_4378">XMP_4378</option>
+                                
+                                    <option value="XMP_4385">XMP_4385</option>
+                                
+                                    <option value="XMP_4384">XMP_4384</option>
+                                
+                                    <option value="XMP_4391">XMP_4391</option>
+                                
+                                    <option value="XMP_4390">XMP_4390</option>
+                                
+                                    <option value="XMP_4477">XMP_4477</option>
+                                
+                                    <option value="XMP_4476">XMP_4476</option>
+                                
+                                    <option value="XMP_4551">XMP_4551</option>
+                                
+                                    <option value="XMP_4550">XMP_4550</option>
+                                
+                                    <option value="XMP_4555">XMP_4555</option>
+                                
+                                    <option value="XMP_4554">XMP_4554</option>
+                                
+                                    <option value="XMP_4603">XMP_4603</option>
+                                
+                                    <option value="XMP_4602">XMP_4602</option>
+                                
+                                    <option value="XMP_4666">XMP_4666</option>
+                                
+                                    <option value="XMP_4665">XMP_4665</option>
+                                
+                                    <option value="XMP_3799">XMP_3799</option>
+                                
+                                    <option value="XMP_3849">XMP_3849</option>
+                                
+                                    <option value="XMP_2627">XMP_2627</option>
+                                
+                                    <option value="XMP_3852">XMP_3852</option>
+                                
+                                    <option value="XMP_4608">XMP_4608</option>
+                                
+                                    <option value="XMP_3804">XMP_3804</option>
+                                
+                                    <option value="XMP_3855">XMP_3855</option>
+                                
+                                    <option value="XMP_3809">XMP_3809</option>
+                                
+                                    <option value="XMP_3858">XMP_3858</option>
+                                
+                                    <option value="XMP_4222">XMP_4222</option>
+                                
+                                    <option value="XMP_3814">XMP_3814</option>
+                                
+                                    <option value="XMP_3861">XMP_3861</option>
+                                
+                                    <option value="XMP_4238">XMP_4238</option>
+                                
+                                    <option value="XMP_3819">XMP_3819</option>
+                                
+                                    <option value="XMP_3864">XMP_3864</option>
+                                
+                                    <option value="XMP_4234">XMP_4234</option>
+                                
+                                    <option value="XMP_3824">XMP_3824</option>
+                                
+                                    <option value="XMP_3867">XMP_3867</option>
+                                
+                                    <option value="XMP_3932">XMP_3932</option>
+                                
+                                    <option value="XMP_3829">XMP_3829</option>
+                                
+                                    <option value="XMP_3870">XMP_3870</option>
+                                
+                                    <option value="XMP_4230">XMP_4230</option>
+                                
+                                    <option value="XMP_3834">XMP_3834</option>
+                                
+                                    <option value="XMP_3873">XMP_3873</option>
+                                
+                                    <option value="XMP_4028">XMP_4028</option>
+                                
+                                    <option value="XMP_3839">XMP_3839</option>
+                                
+                                    <option value="XMP_3876">XMP_3876</option>
+                                
+                                    <option value="XMP_4226">XMP_4226</option>
+                                
+                                    <option value="XMP_3844">XMP_3844</option>
+                                
+                                    <option value="XMP_3879">XMP_3879</option>
+                                
+                                    <option value="XMP_4293">XMP_4293</option>
+                                
+                                    <option value="XMP_4297">XMP_4297</option>
+                                
+                                    <option value="XMP_2630">XMP_2630</option>
+                                
+                                    <option value="XMP_2764">XMP_2764</option>
+                                
+                                    <option value="XMP_2907">XMP_2907</option>
+                                
+                                    <option value="XMP_2772">XMP_2772</option>
+                                
+                                    <option value="XMP_2939">XMP_2939</option>
+                                
+                                    <option value="XMP_2768">XMP_2768</option>
+                                
+                                    <option value="XMP_2897">XMP_2897</option>
+                                
+                                    <option value="XMP_2962">XMP_2962</option>
+                                
+                                    <option value="XMP_3162">XMP_3162</option>
+                                
+                                    <option value="XMP_3166">XMP_3166</option>
+                                
+                                    <option value="XMP_3170">XMP_3170</option>
+                                
+                                    <option value="XMP_4110">XMP_4110</option>
+                                
+                                    <option value="XMP_3044">XMP_3044</option>
+                                
+                                    <option value="XMP_3049">XMP_3049</option>
+                                
+                                    <option value="XMP_4546">XMP_4546</option>
+                                
+                                    <option value="XMP_3547">XMP_3547</option>
+                                
+                                    <option value="XMP_2651">XMP_2651</option>
+                                
+                                    <option value="XMP_3890">XMP_3890</option>
+                                
+                                    <option value="XMP_2680">XMP_2680</option>
+                                
+                                    <option value="XMP_2989">XMP_2989</option>
+                                
+                                    <option value="XMP_4450">XMP_4450</option>
+                                
+                                    <option value="XMP_4453">XMP_4453</option>
+                                
+                                    <option value="XMP_3896">XMP_3896</option>
+                                
+                                    <option value="XMP_2732">XMP_2732</option>
+                                
+                                    <option value="XMP_3960">XMP_3960</option>
+                                
+                                    <option value="XMP_3963">XMP_3963</option>
+                                
+                                    <option value="XMP_4445">XMP_4445</option>
+                                
+                                    <option value="XMP_2684">XMP_2684</option>
+                                
+                                    <option value="XMP_3900">XMP_3900</option>
+                                
+                                    <option value="XMP_2694">XMP_2694</option>
+                                
+                                    <option value="XMP_3037">XMP_3037</option>
+                                
+                                    <option value="XMP_3917">XMP_3917</option>
+                                
+                                    <option value="XMP_3914">XMP_3914</option>
+                                
+                                    <option value="XMP_4317">XMP_4317</option>
+                                
+                                    <option value="XMP_2698">XMP_2698</option>
+                                
+                                    <option value="XMP_3909">XMP_3909</option>
+                                
+                                    <option value="XMP_2702">XMP_2702</option>
+                                
+                                    <option value="XMP_3920">XMP_3920</option>
+                                
+                                    <option value="XMP_3040">XMP_3040</option>
+                                
+                                    <option value="XMP_3957">XMP_3957</option>
+                                
+                                    <option value="XMP_3939">XMP_3939</option>
+                                
+                                    <option value="XMP_3954">XMP_3954</option>
+                                
+                                    <option value="XMP_3482">XMP_3482</option>
+                                
+                                    <option value="XMP_4430">XMP_4430</option>
+                                
+                                    <option value="XMP_3944">XMP_3944</option>
+                                
+                                    <option value="XMP_3949">XMP_3949</option>
+                                
+                                    <option value="XMP_3352">XMP_3352</option>
+                                
+                                    <option value="XMP_3356">XMP_3356</option>
+                                
+                                    <option value="XMP_3926">XMP_3926</option>
+                                
+                                    <option value="XMP_2746">XMP_2746</option>
+                                
+                                    <option value="XMP_3531">XMP_3531</option>
+                                
+                                    <option value="XMP_4144">XMP_4144</option>
+                                
+                                    <option value="XMP_4632">XMP_4632</option>
+                                
+                                    <option value="XMP_4635">XMP_4635</option>
+                                
+                                    <option value="XMP_4612">XMP_4612</option>
+                                
+                                    <option value="XMP_2633">XMP_2633</option>
+                                
+                                    <option value="XMP_4538">XMP_4538</option>
+                                
+                                    <option value="XMP_4619">XMP_4619</option>
+                                
+                                    <option value="XMP_4629">XMP_4629</option>
+                                
+                                    <option value="XMP_4624">XMP_4624</option>
+                                
+                                    <option value="XMP_3966">XMP_3966</option>
+                                
+                                    <option value="XMP_2788">XMP_2788</option>
+                                
+                                    <option value="XMP_3521">XMP_3521</option>
+                                
+                                    <option value="XMP_4338">XMP_4338</option>
+                                
+                                    <option value="XMP_3238">XMP_3238</option>
+                                
+                                    <option value="XMP_3513">XMP_3513</option>
+                                
+                                    <option value="XMP_4434">XMP_4434</option>
+                                
+                                    <option value="XMP_3432">XMP_3432</option>
+                                
+                                    <option value="XMP_3517">XMP_3517</option>
+                                
+                                    <option value="XMP_3972">XMP_3972</option>
+                                
+                                    <option value="XMP_2823">XMP_2823</option>
+                                
+                                    <option value="XMP_3986">XMP_3986</option>
+                                
+                                    <option value="XMP_3989">XMP_3989</option>
+                                
+                                    <option value="XMP_4094">XMP_4094</option>
+                                
+                                    <option value="XMP_3006">XMP_3006</option>
+                                
+                                    <option value="XMP_3014">XMP_3014</option>
+                                
+                                    <option value="XMP_3981">XMP_3981</option>
+                                
+                                    <option value="XMP_2807">XMP_2807</option>
+                                
+                                    <option value="XMP_3052">XMP_3052</option>
+                                
+                                    <option value="XMP_3992">XMP_3992</option>
+                                
+                                    <option value="XMP_2813">XMP_2813</option>
+                                
+                                    <option value="XMP_4006">XMP_4006</option>
+                                
+                                    <option value="XMP_4009">XMP_4009</option>
+                                
+                                    <option value="XMP_4098">XMP_4098</option>
+                                
+                                    <option value="XMP_3010">XMP_3010</option>
+                                
+                                    <option value="XMP_3017">XMP_3017</option>
+                                
+                                    <option value="XMP_4001">XMP_4001</option>
+                                
+                                    <option value="XMP_2817">XMP_2817</option>
+                                
+                                    <option value="XMP_4015">XMP_4015</option>
+                                
+                                    <option value="XMP_4020">XMP_4020</option>
+                                
+                                    <option value="XMP_3370">XMP_3370</option>
+                                
+                                    <option value="XMP_4023">XMP_4023</option>
+                                
+                                    <option value="XMP_4427">XMP_4427</option>
+                                
+                                    <option value="XMP_4658">XMP_4658</option>
+                                
+                                    <option value="XMP_2831">XMP_2831</option>
+                                
+                                    <option value="XMP_4106">XMP_4106</option>
+                                
+                                    <option value="XMP_3027">XMP_3027</option>
+                                
+                                    <option value="XMP_3031">XMP_3031</option>
+                                
+                                    <option value="XMP_4424">XMP_4424</option>
+                                
+                                    <option value="XMP_4114">XMP_4114</option>
+                                
+                                    <option value="XMP_3057">XMP_3057</option>
+                                
+                                    <option value="XMP_3062">XMP_3062</option>
+                                
+                                    <option value="XMP_4397">XMP_4397</option>
+                                
+                                    <option value="XMP_4402">XMP_4402</option>
+                                
+                                    <option value="XMP_2827">XMP_2827</option>
+                                
+                                    <option value="XMP_4405">XMP_4405</option>
+                                
+                                    <option value="XMP_4411">XMP_4411</option>
+                                
+                                    <option value="XMP_4421">XMP_4421</option>
+                                
+                                    <option value="XMP_4638">XMP_4638</option>
+                                
+                                    <option value="XMP_4416">XMP_4416</option>
+                                
+                                    <option value="XMP_4542">XMP_4542</option>
+                                
+                                    <option value="XMP_3593">XMP_3593</option>
+                                
+                                    <option value="XMP_3597">XMP_3597</option>
+                                
+                                    <option value="XMP_3678">XMP_3678</option>
+                                
+                                    <option value="XMP_3729">XMP_3729</option>
+                                
+                                    <option value="XMP_4035">XMP_4035</option>
+                                
+                                    <option value="XMP_4040">XMP_4040</option>
+                                
+                                    <option value="XMP_4043">XMP_4043</option>
+                                
+                                    <option value="XMP_4102">XMP_4102</option>
+                                
+                                    <option value="XMP_3020">XMP_3020</option>
+                                
+                                    <option value="XMP_3024">XMP_3024</option>
+                                
+                                    <option value="XMP_2966">XMP_2966</option>
+                                
+                                    <option value="XMP_2979">XMP_2979</option>
+                                
+                                    <option value="XMP_4070">XMP_4070</option>
+                                
+                                    <option value="XMP_2972">XMP_2972</option>
+                                
+                                    <option value="XMP_2976">XMP_2976</option>
+                                
+                                    <option value="XMP_4084">XMP_4084</option>
+                                
+                                    <option value="XMP_2992">XMP_2992</option>
+                                
+                                    <option value="XMP_3000">XMP_3000</option>
+                                
+                                    <option value="XMP_4216">XMP_4216</option>
+                                
+                                    <option value="XMP_4219">XMP_4219</option>
+                                
+                                    <option value="XMP_4090">XMP_4090</option>
+                                
+                                    <option value="XMP_2996">XMP_2996</option>
+                                
+                                    <option value="XMP_3003">XMP_3003</option>
+                                
+                                    <option value="XMP_4463">XMP_4463</option>
+                                
+                                    <option value="XMP_4466">XMP_4466</option>
+                                
+                                    <option value="XMP_2672">XMP_2672</option>
+                                
+                                    <option value="XMP_2985">XMP_2985</option>
+                                
+                                    <option value="XMP_4211">XMP_4211</option>
+                                
+                                    <option value="XMP_2647">XMP_2647</option>
+                                
+                                    <option value="XMP_4458">XMP_4458</option>
+                                
+                                    <option value="XMP_3543">XMP_3543</option>
+                                
+                                    <option value="XMP_4469">XMP_4469</option>
+                                
+                                    <option value="XMP_4118">XMP_4118</option>
+                                
+                                    <option value="XMP_3065">XMP_3065</option>
+                                
+                                    <option value="XMP_3070">XMP_3070</option>
+                                
+                                    <option value="XMP_4124">XMP_4124</option>
+                                
+                                    <option value="XMP_3073">XMP_3073</option>
+                                
+                                    <option value="XMP_3078">XMP_3078</option>
+                                
+                                    <option value="XMP_4130">XMP_4130</option>
+                                
+                                    <option value="XMP_3081">XMP_3081</option>
+                                
+                                    <option value="XMP_3086">XMP_3086</option>
+                                
+                                    <option value="XMP_4650">XMP_4650</option>
+                                
+                                    <option value="XMP_3686">XMP_3686</option>
+                                
+                                    <option value="XMP_4148">XMP_4148</option>
+                                
+                                    <option value="XMP_3119">XMP_3119</option>
+                                
+                                    <option value="XMP_4194">XMP_4194</option>
+                                
+                                    <option value="XMP_3127">XMP_3127</option>
+                                
+                                    <option value="XMP_4165">XMP_4165</option>
+                                
+                                    <option value="XMP_4160">XMP_4160</option>
+                                
+                                    <option value="XMP_4168">XMP_4168</option>
+                                
+                                    <option value="XMP_4197">XMP_4197</option>
+                                
+                                    <option value="XMP_3097">XMP_3097</option>
+                                
+                                    <option value="XMP_4178">XMP_4178</option>
+                                
+                                    <option value="XMP_4173">XMP_4173</option>
+                                
+                                    <option value="XMP_4181">XMP_4181</option>
+                                
+                                    <option value="XMP_4201">XMP_4201</option>
+                                
+                                    <option value="XMP_3131">XMP_3131</option>
+                                
+                                    <option value="XMP_4191">XMP_4191</option>
+                                
+                                    <option value="XMP_4186">XMP_4186</option>
+                                
+                                    <option value="XMP_4654">XMP_4654</option>
+                                
+                                    <option value="XMP_3114">XMP_3114</option>
+                                
+                                    <option value="XMP_3135">XMP_3135</option>
+                                
+                                    <option value="XMP_3143">XMP_3143</option>
+                                
+                                    <option value="XMP_3139">XMP_3139</option>
+                                
+                                    <option value="XMP_3146">XMP_3146</option>
+                                
+                                    <option value="XMP_3718">XMP_3718</option>
+                                
+                                    <option value="XMP_3722">XMP_3722</option>
+                                
+                                    <option value="XMP_4269">XMP_4269</option>
+                                
+                                    <option value="XMP_2860">XMP_2860</option>
+                                
+                                    <option value="XMP_4438">XMP_4438</option>
+                                
+                                    <option value="XMP_3458">XMP_3458</option>
+                                
+                                    <option value="XMP_3537">XMP_3537</option>
+                                
+                                    <option value="XMP_4527">XMP_4527</option>
+                                
+                                    <option value="XMP_4532">XMP_4532</option>
+                                
+                                    <option value="XMP_4535">XMP_4535</option>
+                                
+                                    <option value="XMP_4581">XMP_4581</option>
+                                
+                                    <option value="XMP_3630">XMP_3630</option>
+                                
+                                    <option value="XMP_4599">XMP_4599</option>
+                                
+                                    <option value="XMP_4585">XMP_4585</option>
+                                
+                                    <option value="XMP_3634">XMP_3634</option>
+                                
+                                    <option value="XMP_3639">XMP_3639</option>
+                                
+                                    <option value="XMP_2889">XMP_2889</option>
+                                
+                                    <option value="XMP_2893">XMP_2893</option>
+                                
+                                    <option value="XMP_3257">XMP_3257</option>
+                                
+                                    <option value="XMP_4490">XMP_4490</option>
+                                
+                                    <option value="XMP_4360">XMP_4360</option>
+                                
+                                    <option value="XMP_3269">XMP_3269</option>
+                                
+                                    <option value="XMP_3320">XMP_3320</option>
+                                
+                                    <option value="XMP_4493">XMP_4493</option>
+                                
+                                    <option value="XMP_4485">XMP_4485</option>
+                                
+                                    <option value="XMP_3561">XMP_3561</option>
+                                
+                                    <option value="XMP_3261">XMP_3261</option>
+                                
+                                    <option value="XMP_4504">XMP_4504</option>
+                                
+                                    <option value="XMP_4364">XMP_4364</option>
+                                
+                                    <option value="XMP_3273">XMP_3273</option>
+                                
+                                    <option value="XMP_3323">XMP_3323</option>
+                                
+                                    <option value="XMP_4507">XMP_4507</option>
+                                
+                                    <option value="XMP_4499">XMP_4499</option>
+                                
+                                    <option value="XMP_3567">XMP_3567</option>
+                                
+                                    <option value="XMP_3285">XMP_3285</option>
+                                
+                                    <option value="XMP_3265">XMP_3265</option>
+                                
+                                    <option value="XMP_4518">XMP_4518</option>
+                                
+                                    <option value="XMP_4368">XMP_4368</option>
+                                
+                                    <option value="XMP_3277">XMP_3277</option>
+                                
+                                    <option value="XMP_3311">XMP_3311</option>
+                                
+                                    <option value="XMP_4521">XMP_4521</option>
+                                
+                                    <option value="XMP_4513">XMP_4513</option>
+                                
+                                    <option value="XMP_3573">XMP_3573</option>
+                                
+                                    <option value="XMP_3281">XMP_3281</option>
+                                
+                                    <option value="XMP_3289">XMP_3289</option>
+                                
+                                    <option value="XMP_3614">XMP_3614</option>
+                                
+                                    <option value="XMP_4567">XMP_4567</option>
+                                
+                                    <option value="XMP_4562">XMP_4562</option>
+                                
+                                    <option value="XMP_4570">XMP_4570</option>
+                                
+                                    <option value="XMP_4573">XMP_4573</option>
+                                
+                                    <option value="XMP_3618">XMP_3618</option>
+                                
+                                    <option value="XMP_4596">XMP_4596</option>
+                                
+                                    <option value="XMP_3622">XMP_3622</option>
+                                
+                                    <option value="XMP_3647">XMP_3647</option>
+                                
+                                    <option value="XMP_4577">XMP_4577</option>
+                                
+                                    <option value="XMP_3626">XMP_3626</option>
+                                
+                                    <option value="XMP_3644">XMP_3644</option>
+                                
+                                    <option value="XMP_4591">XMP_4591</option>
+                                
+                                    <option value="XMP_3662">XMP_3662</option>
+                                
+                                    <option value="XMP_3348">XMP_3348</option>
+                                
+                                    <option value="XMP_4313">XMP_4313</option>
+                                
+                                    <option value="XMP_4275">XMP_4275</option>
+                                
+                                    <option value="XMP_2839">XMP_2839</option>
+                                
+                                    <option value="XMP_3034">XMP_3034</option>
+                                
+                                    <option value="XMP_3344">XMP_3344</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_3885", "label": "OffPageReference", "position": [271.01, 154.0], "shape": "^", "size": 20, "title": "D-44L00288A-\\n0300WJ-GD36-034040Y"}, {"NrofConnections": 2, "color": "#3cb44b", "font": {"color": "white"}, "id": "XMP_3884", "label": "NetworkSegment_20", "segmentCordinates": [[277.0, 233.0], [280.0, 233.0], [280.0, 220.0], [280.0, 220.0], [280.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3888", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4065", "label": "OffPageReference", "position": [608.0, 93.52], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-57011-01"}, {"NrofConnections": 2, "color": "#e6beff", "font": {"color": "white"}, "id": "XMP_4064", "label": "NetworkSegment_75", "segmentCordinates": [[613.0, 129.0], [633.0, 129.0], [633.0, 107.0], [607.0, 129.0], [603.0, 129.0], [611.0, 129.0], [601.0, 129.0], [599.0, 129.0], [603.0, 129.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4068", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4155", "label": "OffPageReference", "position": [626.0, 327.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-42010-09"}, {"NrofConnections": 2, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4154", "label": "NetworkSegment_90", "segmentCordinates": [[763.0, 355.0], [626.0, 355.0], [626.0, 327.0], [626.0, 323.0], [626.0, 327.0], [626.0, 319.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4209", "label": "OffPageReference", "position": [199.08, 232.0], "shape": "^", "size": 20, "title": "D-44L00287A-\\n0300WJ-GD75-004040N"}, {"NrofConnections": 2, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4205", "label": "NetworkSegment_79", "segmentCordinates": [[193.0, 233.0], [200.0, 233.0], [204.0, 233.0], [200.0, 233.0], [208.0, 233.0], [191.0, 233.0], [189.0, 233.0], [193.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4243", "label": "OffPageReference", "position": [35.0, 471.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-20015-01"}, {"NrofConnections": 2, "color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_4242", "label": "NetworkSegment_46", "segmentCordinates": [[88.0, 474.0], [89.0, 474.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3970", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4303", "label": "OffPageReference", "position": [593.0, 433.3333], "shape": "^", "size": 20, "title": "D-20L01550A-0200VF-FD36-004040S"}, {"NrofConnections": 2, "color": "#f032e6", "font": {"color": "white"}, "id": "XMP_4302", "label": "NetworkSegment_53", "segmentCordinates": [[593.0, 434.0], [660.0, 434.0001], [660.0, 467.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3976", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4310", "label": "OffPageReference", "position": [178.3333, 233.0], "shape": "^", "size": 20, "title": "D-44L00289A-0300VF-BD25-004040S"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_4309", "label": "NetworkSegment_24", "segmentCordinates": [[179.0, 233.0], [179.0, 283.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3894", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4325", "label": "OffPageReference", "position": [203.0, 321.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-43016-01"}, {"NrofConnections": 2, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_4324", "label": "NetworkSegment_32", "segmentCordinates": [[221.0, 322.0], [228.0, 322.0], [228.0, 357.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3904", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4329", "label": "OffPageReference", "position": [768.3333, 512.0], "shape": "^", "size": 20, "title": "D-43L00107A-0600VF-AR24"}, {"NrofConnections": 2, "color": "#bcf60c", "font": {"color": "white"}, "id": "XMP_4328", "label": "NetworkSegment_110", "segmentCordinates": [[769.0, 512.0], [769.0, 518.0], [769.0, 506.0], [769.0, 506.0], [769.0, 510.0], [769.0, 502.0], [769.0, 498.0], [769.0, 506.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4332", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4335", "label": "OffPageReference", "position": [744.0, 520.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-43010-01"}, {"NrofConnections": 2, "color": "#bcf60c", "font": {"color": "white"}, "id": "XMP_4334", "label": "NetworkSegment_111", "segmentCordinates": [[769.0, 520.0], [769.0, 547.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4332", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4343", "label": "OffPageReference", "position": [56.75, 361.0], "shape": "^", "size": 20, "title": "D-13L00272A-0200DC-GD36-004040Y"}, {"NrofConnections": 2, "color": "#fabed4", "font": {"color": "white"}, "id": "XMP_4342", "label": "NetworkSegment_112", "segmentCordinates": [[112.0, 379.0], [112.0, 362.0], [112.0, 358.0], [112.0, 362.0], [112.0, 354.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4346", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4349", "label": "OffPageReference", "position": [283.7506, 379.0], "shape": "^", "size": 20, "title": "D-13L00172A-0200DC-GD36-004040Y"}, {"NrofConnections": 2, "color": "#dcbeff", "font": {"color": "white"}, "id": "XMP_4348", "label": "NetworkSegment_116", "segmentCordinates": [[340.0, 396.0], [340.0, 379.0], [340.0, 375.0], [340.0, 379.0], [340.0, 371.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4352", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4355", "label": "OffPageReference", "position": [375.75, 397.0], "shape": "^", "size": 20, "title": "D-13L00371A-0200DC-GD36-004040Y"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4354", "label": "NetworkSegment_120", "segmentCordinates": [[433.0, 413.0], [433.0, 397.0], [433.0, 393.0], [433.0, 397.0], [433.0, 389.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4358", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4373", "label": "OffPageReference", "position": [70.18, 300.52], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-57010-01"}, {"NrofConnections": 2, "color": "#3cb44b", "font": {"color": "white"}, "id": "XMP_4372", "label": "NetworkSegment_124", "segmentCordinates": [[112.0, 327.0], [112.0, 314.0], [112.0, 333.0], [112.0, 337.0], [112.0, 329.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4376", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4379", "label": "OffPageReference", "position": [315.0, 312.52], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-57010-01"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_4378", "label": "NetworkSegment_125", "segmentCordinates": [[340.0, 341.0], [340.0, 326.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4382", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4385", "label": "OffPageReference", "position": [408.0, 331.52], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-57010-01"}, {"NrofConnections": 2, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_4384", "label": "NetworkSegment_126", "segmentCordinates": [[433.0, 361.0], [433.0, 345.0], [433.0, 367.0], [433.0, 371.0], [433.0, 363.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4388", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4391", "label": "OffPageReference", "position": [560.0, 393.0], "shape": "^", "size": 20, "title": "D-20L01555A-0300PB-GD36-004040S"}, {"NrofConnections": 2, "color": "#808080", "font": {"color": "white"}, "id": "XMP_4390", "label": "NetworkSegment_101", "segmentCordinates": [[560.0, 395.0], [653.0, 395.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4273", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4477", "label": "OffPageReference", "position": [34.0, 230.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-44105-01"}, {"NrofConnections": 2, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_4476", "label": "NetworkSegment_127", "segmentCordinates": [[87.0, 233.0], [92.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4480", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4551", "label": "OffPageReference", "position": [33.83, 225.0], "shape": "^", "size": 20, "title": "D-44L00290A-0300WJ-BD25-004040N"}, {"NrofConnections": 2, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_4550", "label": "NetworkSegment_128", "segmentCordinates": [[94.0, 233.0], [104.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4480", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4555", "label": "OffPageReference", "position": [675.0, 211.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-10001-01"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4554", "label": "NetworkSegment_129", "segmentCordinates": [[764.0, 214.0], [675.0, 214.0], [671.0, 214.0], [675.0, 214.0], [667.0, 214.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4558", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4603", "label": "OffPageReference", "position": [198.83, 163.0], "shape": "^", "size": 20, "title": "D-20L01508A-0200PR-GD36-034040Y"}, {"NrofConnections": 2, "color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_4602", "label": "NetworkSegment_136", "segmentCordinates": [[257.0, 171.0], [257.0, 163.0], [257.0, 163.0], [257.0, 163.0], [257.0, 159.0], [257.0, 175.0], [257.0, 179.0], [257.0, 171.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4606", "type": "segment"}, {"color": "#aa6e28", "font": {"color": "white"}, "id": "XMP_4666", "label": "OffPageReference", "position": [680.0, 532.0], "shape": "^", "size": 20, "title": "FPQ-AKSO-P-XB-43010-01"}, {"NrofConnections": 2, "color": "#d2f53c", "font": {"color": "white"}, "id": "XMP_4665", "label": "NetworkSegment_59", "segmentCordinates": [[705.0, 532.0], [705.0, 558.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3996", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3799", "isPartofSegment": "XMP_3849", "label": "PipeTee_XMP_3799", "position": [[257.0, 154.0], [257.0, 154.0], [257.0, 154.0], [257.0, 154.0]], "segmentCordinates": [[249.0, 154.0], [257.0, 154.0], [257.0, 154.0], [257.0, 154.0], [257.0, 154.0], [257.0, 154.0], [248.0, 154.0], [249.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3849", "label": "NetworkSegment_1", "segmentCordinates": [[249.0, 154.0], [257.0, 154.0], [257.0, 154.0], [257.0, 154.0], [257.0, 154.0], [257.0, 154.0], [248.0, 154.0], [249.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2627", "isPartofSegment": null, "label": "Flange_XMP_2627", "segmentCordinates": [[248.0, 154.0], [249.0, 154.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3852", "label": "NetworkSegment_2", "segmentCordinates": [[257.0, 154.0], [280.0, 154.0], [280.0, 154.0], [280.0, 154.0], [280.0, 154.0], [280.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 2, "color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_4608", "label": "NetworkSegment_137", "segmentCordinates": [[257.0, 159.0], [257.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4606", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3804", "isPartofSegment": "XMP_3852", "label": "PipeTee_XMP_3804", "position": [[280.0, 154.0], [280.0, 154.0], [280.0, 154.0], [280.0, 154.0]], "segmentCordinates": [[257.0, 154.0], [280.0, 154.0], [280.0, 154.0], [280.0, 154.0], [280.0, 154.0], [280.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3855", "label": "NetworkSegment_3", "segmentCordinates": [[280.0, 154.0], [301.0, 154.0], [301.0, 154.0], [301.0, 154.0], [301.0, 154.0], [301.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3809", "isPartofSegment": "XMP_3855", "label": "PipeTee_XMP_3809", "position": [[301.0, 154.0], [301.0, 154.0], [301.0, 154.0], [301.0, 154.0]], "segmentCordinates": [[280.0, 154.0], [301.0, 154.0], [301.0, 154.0], [301.0, 154.0], [301.0, 154.0], [301.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3858", "label": "NetworkSegment_4", "segmentCordinates": [[301.0, 154.0], [349.0, 154.0], [349.0, 154.0], [349.0, 154.0], [349.0, 154.0], [349.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 4, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4222", "label": "NetworkSegment_14", "segmentCordinates": [[301.0, 171.0], [301.0, 154.0], [301.0, 173.0], [301.0, 173.0], [301.0, 171.0], [301.0, 177.0], [315.0, 177.0], [306.0, 177.0], [301.0, 181.0], [301.0, 173.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3814", "isPartofSegment": "XMP_3858", "label": "PipeTee_XMP_3814", "position": [[349.0, 154.0], [349.0, 154.0], [349.0, 154.0], [349.0, 154.0]], "segmentCordinates": [[301.0, 154.0], [349.0, 154.0], [349.0, 154.0], [349.0, 154.0], [349.0, 154.0], [349.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3861", "label": "NetworkSegment_5", "segmentCordinates": [[349.0, 154.0], [371.0, 154.0], [371.0, 154.0], [371.0, 154.0], [371.0, 154.0], [371.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4238", "label": "NetworkSegment_18", "segmentCordinates": [[349.0, 171.0], [349.0, 154.0], [349.0, 173.0], [349.0, 173.0], [349.0, 171.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3819", "isPartofSegment": "XMP_3861", "label": "PipeTee_XMP_3819", "position": [[371.0, 154.0], [371.0, 154.0], [371.0, 154.0], [371.0, 154.0]], "segmentCordinates": [[349.0, 154.0], [371.0, 154.0], [371.0, 154.0], [371.0, 154.0], [371.0, 154.0], [371.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3864", "label": "NetworkSegment_6", "segmentCordinates": [[371.0, 154.0], [399.0, 154.0], [399.0, 154.0], [399.0, 154.0], [399.0, 154.0], [399.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4234", "label": "NetworkSegment_17", "segmentCordinates": [[371.0, 171.0], [371.0, 154.0], [371.0, 173.0], [371.0, 173.0], [371.0, 171.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3824", "isPartofSegment": "XMP_3864", "label": "PipeTee_XMP_3824", "position": [[399.0, 154.0], [399.0, 154.0], [399.0, 154.0], [399.0, 154.0]], "segmentCordinates": [[371.0, 154.0], [399.0, 154.0], [399.0, 154.0], [399.0, 154.0], [399.0, 154.0], [399.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3867", "label": "NetworkSegment_7", "segmentCordinates": [[399.0, 154.0], [452.0, 154.0], [452.0, 154.0], [452.0, 154.0], [452.0, 154.0], [452.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 4, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3932", "label": "NetworkSegment_12", "segmentCordinates": [[399.0, 171.0], [399.0, 154.0], [399.0, 173.0], [399.0, 173.0], [399.0, 171.0], [399.0, 177.0], [413.0, 177.0], [404.0, 177.0], [399.0, 181.0], [399.0, 173.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3829", "isPartofSegment": "XMP_3867", "label": "PipeTee_XMP_3829", "position": [[452.0, 154.0], [452.0, 154.0], [452.0, 154.0], [452.0, 154.0]], "segmentCordinates": [[399.0, 154.0], [452.0, 154.0], [452.0, 154.0], [452.0, 154.0], [452.0, 154.0], [452.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3870", "label": "NetworkSegment_8", "segmentCordinates": [[452.0, 154.0], [476.0, 154.0], [476.0, 154.0], [476.0, 154.0], [476.0, 154.0], [476.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4230", "label": "NetworkSegment_16", "segmentCordinates": [[452.0, 171.0], [452.0, 154.0], [452.0, 173.0], [452.0, 173.0], [452.0, 171.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3834", "isPartofSegment": "XMP_3870", "label": "PipeTee_XMP_3834", "position": [[476.0, 154.0], [476.0, 154.0], [476.0, 154.0], [476.0, 154.0]], "segmentCordinates": [[452.0, 154.0], [476.0, 154.0], [476.0, 154.0], [476.0, 154.0], [476.0, 154.0], [476.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3873", "label": "NetworkSegment_9", "segmentCordinates": [[476.0, 154.0], [516.0, 154.0], [516.0, 154.0], [516.0, 154.0], [516.0, 154.0], [516.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 4, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4028", "label": "NetworkSegment_13", "segmentCordinates": [[476.0, 171.0], [476.0, 154.0], [476.0, 173.0], [476.0, 173.0], [476.0, 171.0], [476.0, 177.0], [490.0, 177.0], [481.0, 177.0], [476.0, 181.0], [476.0, 173.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3839", "isPartofSegment": "XMP_3873", "label": "PipeTee_XMP_3839", "position": [[516.0, 154.0], [516.0, 154.0], [516.0, 154.0], [516.0, 154.0]], "segmentCordinates": [[476.0, 154.0], [516.0, 154.0], [516.0, 154.0], [516.0, 154.0], [516.0, 154.0], [516.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3876", "label": "NetworkSegment_10", "segmentCordinates": [[516.0, 154.0], [520.0, 154.0], [520.0, 154.0], [520.0, 154.0], [520.0, 154.0], [520.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4226", "label": "NetworkSegment_15", "segmentCordinates": [[516.0, 154.0], [516.0, 144.0], [516.0, 140.0], [516.0, 144.0], [516.0, 136.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3844", "isPartofSegment": "XMP_3876", "label": "PipeTee_XMP_3844", "position": [[520.0, 154.0], [520.0, 154.0], [520.0, 154.0], [520.0, 154.0]], "segmentCordinates": [[516.0, 154.0], [520.0, 154.0], [520.0, 154.0], [520.0, 154.0], [520.0, 154.0], [520.0, 154.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3882", "type": "component"}, {"NrofConnections": 1, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_3879", "label": "NetworkSegment_11", "segmentCordinates": [[520.0, 154.0], [538.0, 154.0], [539.0, 154.0], [538.0, 154.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3882", "type": "segment"}, {"NrofConnections": 2, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4293", "label": "NetworkSegment_102", "segmentCordinates": [[520.0, 154.0], [520.0, 205.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"NrofConnections": 2, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4297", "label": "NetworkSegment_103", "segmentCordinates": [[520.0, 154.0], [520.0, 205.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2630", "isPartofSegment": null, "label": "Flange_XMP_2630", "segmentCordinates": [[539.0, 154.0], [538.0, 154.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2764", "isPartofSegment": null, "label": "Flange_XMP_2764", "segmentCordinates": [[399.0, 173.0], [399.0, 173.0], [399.0, 171.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2907", "isPartofSegment": null, "label": "BallValve_XMP_2907", "segmentCordinates": [[399.0, 177.0], [413.0, 177.0], [404.0, 177.0], [399.0, 181.0], [399.0, 173.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2772", "isPartofSegment": null, "label": "Flange_XMP_2772", "segmentCordinates": [[476.0, 173.0], [476.0, 173.0], [476.0, 171.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2939", "isPartofSegment": null, "label": "BallValve_XMP_2939", "segmentCordinates": [[476.0, 177.0], [490.0, 177.0], [481.0, 177.0], [476.0, 181.0], [476.0, 173.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2768", "isPartofSegment": null, "label": "Flange_XMP_2768", "segmentCordinates": [[301.0, 173.0], [301.0, 173.0], [301.0, 171.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2897", "isPartofSegment": null, "label": "BallValve_XMP_2897", "segmentCordinates": [[301.0, 177.0], [315.0, 177.0], [306.0, 177.0], [301.0, 181.0], [301.0, 173.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2962", "isPartofSegment": null, "label": "GateValve_XMP_2962", "segmentCordinates": [[516.0, 140.0], [516.0, 144.0], [516.0, 136.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3162", "isPartofSegment": null, "label": "Flange_XMP_3162", "segmentCordinates": [[452.0, 173.0], [452.0, 173.0], [452.0, 171.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3166", "isPartofSegment": null, "label": "Flange_XMP_3166", "segmentCordinates": [[371.0, 173.0], [371.0, 173.0], [371.0, 171.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3170", "isPartofSegment": null, "label": "Flange_XMP_3170", "segmentCordinates": [[349.0, 173.0], [349.0, 173.0], [349.0, 171.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#3cb44b", "font": {"color": "white"}, "id": "XMP_4110", "label": "NetworkSegment_19", "segmentCordinates": [[263.0, 229.0], [263.0, 224.0], [263.0, 216.0], [273.0, 216.0], [263.0, 224.0], [263.0, 208.0], [263.0, 207.0], [263.0, 208.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3888", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3044", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3044", "segmentCordinates": [[263.0, 216.0], [273.0, 216.0], [263.0, 224.0], [263.0, 208.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3049", "isPartofSegment": null, "label": "Flange_XMP_3049", "segmentCordinates": [[263.0, 207.0], [263.0, 208.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 4, "color": "#3cb44b", "font": {"color": "white"}, "id": "XMP_4546", "label": "NetworkSegment_21", "segmentCordinates": [[267.0, 233.0], [273.0, 233.0], [273.0, 233.0], [273.0, 233.0], [277.0, 233.0], [263.0, 233.0], [263.0, 247.0], [263.0, 238.0], [259.0, 233.0], [267.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3888", "type": "segment"}, {"color": "#3cb44b", "font": {"color": "white"}, "id": "XMP_3547", "isPartofSegment": "XMP_4546", "label": "PipeReducer_XMP_3547", "position": [[273.0, 233.0], [273.0, 233.0], [277.0, 233.0]], "segmentCordinates": [[267.0, 233.0], [273.0, 233.0], [273.0, 233.0], [273.0, 233.0], [277.0, 233.0], [263.0, 233.0], [263.0, 247.0], [263.0, 238.0], [259.0, 233.0], [267.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3888", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2651", "isPartofSegment": null, "label": "BallValve_XMP_2651", "segmentCordinates": [[263.0, 233.0], [263.0, 247.0], [263.0, 238.0], [259.0, 233.0], [267.0, 233.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 1, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_3890", "label": "NetworkSegment_22", "segmentCordinates": [[179.0, 304.0], [187.0, 304.0], [191.0, 304.0], [187.0, 304.0], [195.0, 304.0], [196.0, 304.0], [195.0, 304.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3894", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2680", "isPartofSegment": null, "label": "GateValve_XMP_2680", "segmentCordinates": [[191.0, 304.0], [187.0, 304.0], [195.0, 304.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2989", "isPartofSegment": null, "label": "Flange_XMP_2989", "segmentCordinates": [[196.0, 304.0], [195.0, 304.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_4450", "label": "NetworkSegment_25", "segmentCordinates": [[179.0, 285.0], [179.0, 304.0], [179.0, 304.0], [179.0, 304.0], [179.0, 304.0], [179.0, 304.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3894", "type": "segment"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_4453", "label": "NetworkSegment_26", "segmentCordinates": [[179.0, 304.0], [179.0, 309.0], [179.0, 309.0], [179.0, 309.0], [179.0, 313.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3894", "type": "segment"}, {"NrofConnections": 2, "color": "#ffe119", "font": {"color": "white"}, "id": "XMP_3896", "label": "NetworkSegment_23", "segmentCordinates": [[179.0, 313.0], [179.0, 318.0], [179.0, 322.0], [183.0, 322.0], [179.0, 318.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3894", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2732", "isPartofSegment": null, "label": "SpringLoadedAngleGlobeSafetyValve_XMP_2732", "segmentCordinates": [[179.0, 322.0], [183.0, 322.0], [179.0, 318.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_3960", "label": "NetworkSegment_36", "segmentCordinates": [[133.0, 233.0], [179.0, 233.0], [179.0, 233.0], [179.0, 233.0], [179.0, 233.0], [179.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3924", "type": "segment"}, {"NrofConnections": 2, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_3963", "label": "NetworkSegment_37", "segmentCordinates": [[179.0, 233.0], [187.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3924", "type": "segment"}, {"color": "#ffe119", "font": {"color": "white"}, "id": "XMP_4445", "isPartofSegment": "XMP_4450", "label": "PipeTee_XMP_4445", "position": [[179.0, 304.0], [179.0, 304.0], [179.0, 304.0], [179.0, 304.0]], "segmentCordinates": [[179.0, 285.0], [179.0, 304.0], [179.0, 304.0], [179.0, 304.0], [179.0, 304.0], [179.0, 304.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3894", "type": "component"}, {"color": "#ffe119", "font": {"color": "white"}, "id": "XMP_2684", "isPartofSegment": "XMP_4453", "label": "PipeReducer_XMP_2684", "position": [[179.0, 309.0], [179.0, 309.0], [179.0, 313.0]], "segmentCordinates": [[179.0, 304.0], [179.0, 309.0], [179.0, 309.0], [179.0, 309.0], [179.0, 313.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3894", "type": "component"}, {"NrofConnections": 1, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_3900", "label": "NetworkSegment_27", "segmentCordinates": [[200.0, 322.0], [200.0, 330.0], [200.0, 334.0], [200.0, 330.0], [200.0, 338.0], [200.0, 339.0], [200.0, 338.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3904", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2694", "isPartofSegment": null, "label": "GateValve_XMP_2694", "segmentCordinates": [[200.0, 334.0], [200.0, 330.0], [200.0, 338.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3037", "isPartofSegment": null, "label": "Flange_XMP_3037", "segmentCordinates": [[200.0, 339.0], [200.0, 338.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_3917", "label": "NetworkSegment_28", "segmentCordinates": [[200.0, 322.0], [210.0, 322.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3904", "type": "segment"}, {"NrofConnections": 3, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_3914", "label": "NetworkSegment_31", "segmentCordinates": [[194.0, 322.0], [200.0, 322.0], [218.0, 322.0], [219.0, 322.0], [200.0, 322.0], [200.0, 322.0], [200.0, 322.0], [200.0, 322.0], [214.0, 322.0], [210.0, 322.0], [218.0, 322.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3904", "type": "segment"}, {"NrofConnections": 2, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_4317", "label": "NetworkSegment_30", "segmentCordinates": [[189.0, 322.0], [190.0, 322.0], [190.0, 322.0], [190.0, 322.0], [194.0, 322.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3904", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2698", "isPartofSegment": null, "label": "PipeReducer_XMP_2698", "segmentCordinates": [[190.0, 322.0], [190.0, 322.0], [194.0, 322.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#0082c8", "font": {"color": "white"}, "id": "XMP_3909", "isPartofSegment": "XMP_3914", "label": "PipeTee_XMP_3909", "position": [[200.0, 322.0], [200.0, 322.0], [200.0, 322.0], [200.0, 322.0]], "segmentCordinates": [[194.0, 322.0], [200.0, 322.0], [218.0, 322.0], [219.0, 322.0], [200.0, 322.0], [200.0, 322.0], [200.0, 322.0], [200.0, 322.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3904", "type": "component"}, {"color": "#0082c8", "font": {"color": "white"}, "id": "XMP_2702", "isPartofSegment": "XMP_3914", "label": "BallValve_XMP_2702", "position": [[214.0, 322.0], [210.0, 322.0], [218.0, 322.0]], "segmentCordinates": [[194.0, 322.0], [200.0, 322.0], [218.0, 322.0], [219.0, 322.0], [200.0, 322.0], [200.0, 322.0], [200.0, 322.0], [200.0, 322.0], [214.0, 322.0], [210.0, 322.0], [218.0, 322.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3904", "type": "component"}, {"NrofConnections": 2, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_3920", "label": "NetworkSegment_33", "segmentCordinates": [[133.0, 233.0], [133.0, 242.0], [133.0, 244.0], [133.0, 242.0], [133.0, 246.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3924", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3040", "isPartofSegment": null, "label": "StraighwayValve_XMP_3040", "segmentCordinates": [[133.0, 244.0], [133.0, 242.0], [133.0, 246.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_3957", "label": "NetworkSegment_35", "segmentCordinates": [[121.0, 233.0], [133.0, 233.0], [133.0, 233.0], [133.0, 233.0], [133.0, 233.0], [133.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3924", "type": "segment"}, {"color": "#f58231", "font": {"color": "white"}, "id": "XMP_3939", "isPartofSegment": "XMP_3954", "label": "PipeTee_XMP_3939", "position": [[121.0, 233.0], [121.0, 233.0], [121.0, 233.0], [121.0, 233.0]], "segmentCordinates": [[114.0, 233.0], [121.0, 233.0], [121.0, 233.0], [121.0, 233.0], [121.0, 233.0], [121.0, 233.0], [110.0, 233.0], [110.0, 244.0], [110.0, 238.0], [106.0, 233.0], [114.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3924", "type": "component"}, {"NrofConnections": 5, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_3954", "label": "NetworkSegment_34", "segmentCordinates": [[114.0, 233.0], [121.0, 233.0], [121.0, 233.0], [121.0, 233.0], [121.0, 233.0], [121.0, 233.0], [110.0, 233.0], [110.0, 244.0], [110.0, 238.0], [106.0, 233.0], [114.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3924", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3482", "isPartofSegment": null, "label": "BallValve_XMP_3482", "segmentCordinates": [[110.0, 233.0], [110.0, 244.0], [110.0, 238.0], [106.0, 233.0], [114.0, 233.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 1, "color": "#f58231", "font": {"color": "white"}, "id": "XMP_4430", "label": "NetworkSegment_38", "segmentCordinates": [[121.0, 233.0], [121.0, 219.0], [121.0, 215.0], [121.0, 219.0], [121.0, 211.0], [121.0, 210.0], [121.0, 211.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3924", "type": "segment"}, {"color": "#f58231", "font": {"color": "white"}, "id": "XMP_3944", "isPartofSegment": "XMP_3957", "label": "PipeTee_XMP_3944", "position": [[133.0, 233.0], [133.0, 233.0], [133.0, 233.0], [133.0, 233.0]], "segmentCordinates": [[121.0, 233.0], [133.0, 233.0], [133.0, 233.0], [133.0, 233.0], [133.0, 233.0], [133.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3924", "type": "component"}, {"color": "#f58231", "font": {"color": "white"}, "id": "XMP_3949", "isPartofSegment": "XMP_3960", "label": "PipeTee_XMP_3949", "position": [[179.0, 233.0], [179.0, 233.0], [179.0, 233.0], [179.0, 233.0]], "segmentCordinates": [[133.0, 233.0], [179.0, 233.0], [179.0, 233.0], [179.0, 233.0], [179.0, 233.0], [179.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3924", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3352", "isPartofSegment": null, "label": "GateValve_XMP_3352", "segmentCordinates": [[121.0, 215.0], [121.0, 219.0], [121.0, 211.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3356", "isPartofSegment": null, "label": "Flange_XMP_3356", "segmentCordinates": [[121.0, 210.0], [121.0, 211.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_3926", "label": "NetworkSegment_39", "segmentCordinates": [[520.0, 199.0], [495.0002, 199.0], [495.0002, 227.0], [495.0, 235.0], [505.0, 235.0], [495.0, 227.0], [495.0, 243.0], [495.0, 243.0], [495.0, 243.0], [495.0, 245.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3930", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2746", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_2746", "segmentCordinates": [[495.0, 235.0], [505.0, 235.0], [495.0, 227.0], [495.0, 243.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3531", "isPartofSegment": null, "label": "Flange_XMP_3531", "segmentCordinates": [[495.0, 243.0], [495.0, 243.0], [495.0, 245.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4144", "label": "NetworkSegment_40", "segmentCordinates": [[626.0, 240.0], [626.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3930", "type": "segment"}, {"NrofConnections": 3, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4632", "label": "NetworkSegment_43", "segmentCordinates": [[559.9999, 234.0], [626.0, 234.0], [626.0, 234.0], [626.0, 234.0], [626.0, 234.0], [626.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3930", "type": "segment"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4635", "label": "NetworkSegment_44", "segmentCordinates": [[626.0, 234.0], [763.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3930", "type": "segment"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4612", "label": "NetworkSegment_41", "segmentCordinates": [[535.0, 234.0], [543.0, 234.0], [531.0, 234.0], [531.0, 234.0], [535.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3930", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2633", "isPartofSegment": null, "label": "PipeReducer_XMP_2633", "segmentCordinates": [[531.0, 234.0], [531.0, 234.0], [535.0, 234.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4538", "label": "NetworkSegment_107", "segmentCordinates": [[520.0, 225.0], [520.0, 234.0], [531.0, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4619", "isPartofSegment": "XMP_4629", "label": "PipeTee_XMP_4619", "position": [[559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0]], "segmentCordinates": [[545.0, 234.0], [559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3930", "type": "component"}, {"NrofConnections": 3, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4629", "label": "NetworkSegment_42", "segmentCordinates": [[545.0, 234.0], [559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0], [559.9999, 234.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3930", "type": "segment"}, {"color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4624", "isPartofSegment": "XMP_4632", "label": "PipeTee_XMP_4624", "position": [[626.0, 234.0], [626.0, 234.0], [626.0, 234.0], [626.0, 234.0]], "segmentCordinates": [[559.9999, 234.0], [626.0, 234.0], [626.0, 234.0], [626.0, 234.0], [626.0, 234.0], [626.0, 234.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3930", "type": "component"}, {"NrofConnections": 3, "color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_3966", "label": "NetworkSegment_45", "segmentCordinates": [[560.0, 453.0], [581.0, 453.0], [581.0, 460.0], [581.0, 468.0], [591.0, 468.0], [581.0, 460.0], [581.0, 476.0], [581.0, 476.0], [581.0, 476.0], [581.0, 478.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3970", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2788", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_2788", "segmentCordinates": [[581.0, 468.0], [591.0, 468.0], [581.0, 460.0], [581.0, 476.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3521", "isPartofSegment": null, "label": "Flange_XMP_3521", "segmentCordinates": [[581.0, 476.0], [581.0, 476.0], [581.0, 478.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_4338", "label": "NetworkSegment_47", "segmentCordinates": [[483.0, 474.0], [483.0, 483.9996], [483.0, 492.0], [493.0, 492.0], [483.0, 484.0], [483.0, 500.0], [483.0, 500.0], [483.0, 500.0], [483.0, 502.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3970", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3238", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3238", "segmentCordinates": [[483.0, 492.0], [493.0, 492.0], [483.0, 484.0], [483.0, 500.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3513", "isPartofSegment": null, "label": "Flange_XMP_3513", "segmentCordinates": [[483.0, 500.0], [483.0, 500.0], [483.0, 502.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_4434", "label": "NetworkSegment_48", "segmentCordinates": [[535.0, 474.0], [535.0, 483.9996], [535.0, 492.0], [545.0, 492.0], [535.0, 484.0], [535.0, 500.0], [535.0, 500.0], [535.0, 500.0], [535.0, 502.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3970", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3432", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3432", "segmentCordinates": [[535.0, 492.0], [545.0, 492.0], [535.0, 484.0], [535.0, 500.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3517", "isPartofSegment": null, "label": "Flange_XMP_3517", "segmentCordinates": [[535.0, 500.0], [535.0, 500.0], [535.0, 502.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#f032e6", "font": {"color": "white"}, "id": "XMP_3972", "label": "NetworkSegment_49", "segmentCordinates": [[660.0, 514.0], [660.0, 519.0], [660.0, 523.0], [664.0, 523.0], [660.0, 519.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3976", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2823", "isPartofSegment": null, "label": "SpringLoadedAngleGlobeSafetyValve_XMP_2823", "segmentCordinates": [[660.0, 523.0], [664.0, 523.0], [660.0, 519.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 4, "color": "#f032e6", "font": {"color": "white"}, "id": "XMP_3986", "label": "NetworkSegment_54", "segmentCordinates": [[660.0, 499.0], [660.0, 506.0], [660.0, 469.0], [660.0, 483.0], [660.0, 506.0], [660.0, 506.0], [660.0, 506.0], [660.0, 506.0], [660.0, 510.0], [660.0, 510.0], [660.0, 514.0], [660.0, 491.0], [670.0, 491.0], [660.0, 483.0], [660.0, 499.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3976", "type": "segment"}, {"NrofConnections": 2, "color": "#f032e6", "font": {"color": "white"}, "id": "XMP_3989", "label": "NetworkSegment_50", "segmentCordinates": [[660.0, 506.0], [660.0, 510.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3976", "type": "segment"}, {"NrofConnections": 1, "color": "#f032e6", "font": {"color": "white"}, "id": "XMP_4094", "label": "NetworkSegment_51", "segmentCordinates": [[660.0, 506.0], [669.0, 506.0], [673.0, 506.0], [669.0, 506.0], [677.0, 506.0], [678.0, 506.0], [677.0, 506.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3976", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3006", "isPartofSegment": null, "label": "GateValve_XMP_3006", "segmentCordinates": [[673.0, 506.0], [669.0, 506.0], [677.0, 506.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3014", "isPartofSegment": null, "label": "Flange_XMP_3014", "segmentCordinates": [[678.0, 506.0], [677.0, 506.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#f032e6", "font": {"color": "white"}, "id": "XMP_3981", "isPartofSegment": "XMP_3986", "label": "PipeTee_XMP_3981", "position": [[660.0, 506.0], [660.0, 506.0], [660.0, 506.0], [660.0, 506.0]], "segmentCordinates": [[660.0, 499.0], [660.0, 506.0], [660.0, 469.0], [660.0, 483.0], [660.0, 506.0], [660.0, 506.0], [660.0, 506.0], [660.0, 506.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3976", "type": "component"}, {"color": "#f032e6", "font": {"color": "white"}, "id": "XMP_2807", "isPartofSegment": "XMP_3986", "label": "PipeReducer_XMP_2807", "position": [[660.0, 510.0], [660.0, 510.0], [660.0, 514.0]], "segmentCordinates": [[660.0, 499.0], [660.0, 506.0], [660.0, 469.0], [660.0, 483.0], [660.0, 506.0], [660.0, 506.0], [660.0, 506.0], [660.0, 506.0], [660.0, 510.0], [660.0, 510.0], [660.0, 514.0], [660.0, 491.0], [670.0, 491.0], [660.0, 483.0], [660.0, 499.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3976", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3052", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3052", "segmentCordinates": [[660.0, 491.0], [670.0, 491.0], [660.0, 483.0], [660.0, 499.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#d2f53c", "font": {"color": "white"}, "id": "XMP_3992", "label": "NetworkSegment_55", "segmentCordinates": [[666.0, 523.0], [671.0, 523.0], [671.0, 523.0], [671.0, 523.0], [675.0, 523.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3996", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2813", "isPartofSegment": null, "label": "PipeReducer_XMP_2813", "segmentCordinates": [[671.0, 523.0], [671.0, 523.0], [675.0, 523.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#d2f53c", "font": {"color": "white"}, "id": "XMP_4006", "label": "NetworkSegment_58", "segmentCordinates": [[675.0, 523.0], [682.0, 523.0], [699.0, 523.0], [705.0, 523.0], [705.0, 530.0], [682.0, 523.0], [682.0, 523.0], [682.0, 523.0], [682.0, 523.0], [695.0, 523.0], [691.0, 523.0], [699.0, 523.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3996", "type": "segment"}, {"NrofConnections": 2, "color": "#d2f53c", "font": {"color": "white"}, "id": "XMP_4009", "label": "NetworkSegment_56", "segmentCordinates": [[682.0, 523.0], [691.0, 523.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3996", "type": "segment"}, {"NrofConnections": 1, "color": "#d2f53c", "font": {"color": "white"}, "id": "XMP_4098", "label": "NetworkSegment_57", "segmentCordinates": [[682.0, 523.0], [682.0, 529.0], [682.0, 533.0], [682.0, 529.0], [682.0, 537.0], [682.0, 538.0], [682.0, 537.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3996", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3010", "isPartofSegment": null, "label": "GateValve_XMP_3010", "segmentCordinates": [[682.0, 533.0], [682.0, 529.0], [682.0, 537.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3017", "isPartofSegment": null, "label": "Flange_XMP_3017", "segmentCordinates": [[682.0, 538.0], [682.0, 537.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#d2f53c", "font": {"color": "white"}, "id": "XMP_4001", "isPartofSegment": "XMP_4006", "label": "PipeTee_XMP_4001", "position": [[682.0, 523.0], [682.0, 523.0], [682.0, 523.0], [682.0, 523.0]], "segmentCordinates": [[675.0, 523.0], [682.0, 523.0], [699.0, 523.0], [705.0, 523.0], [705.0, 530.0], [682.0, 523.0], [682.0, 523.0], [682.0, 523.0], [682.0, 523.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3996", "type": "component"}, {"color": "#d2f53c", "font": {"color": "white"}, "id": "XMP_2817", "isPartofSegment": "XMP_4006", "label": "BallValve_XMP_2817", "position": [[695.0, 523.0], [691.0, 523.0], [699.0, 523.0]], "segmentCordinates": [[675.0, 523.0], [682.0, 523.0], [699.0, 523.0], [705.0, 523.0], [705.0, 530.0], [682.0, 523.0], [682.0, 523.0], [682.0, 523.0], [682.0, 523.0], [695.0, 523.0], [691.0, 523.0], [699.0, 523.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_3996", "type": "component"}, {"color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4015", "isPartofSegment": "XMP_4020", "label": "PipeTee_XMP_4015", "position": [[560.0, 336.0], [560.0, 336.0], [560.0, 336.0], [560.0, 336.0]], "segmentCordinates": [[560.0, 352.0], [560.0, 336.0], [560.0, 336.0], [560.0, 336.0], [560.0, 336.0], [560.0, 336.0], [560.0, 356.0], [546.0, 356.0], [555.0, 356.0], [560.0, 360.0], [560.0, 352.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4026", "type": "component"}, {"NrofConnections": 5, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4020", "label": "NetworkSegment_60", "segmentCordinates": [[560.0, 352.0], [560.0, 336.0], [560.0, 336.0], [560.0, 336.0], [560.0, 336.0], [560.0, 336.0], [560.0, 356.0], [546.0, 356.0], [555.0, 356.0], [560.0, 360.0], [560.0, 352.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3370", "isPartofSegment": null, "label": "BallValve_XMP_3370", "segmentCordinates": [[560.0, 356.0], [546.0, 356.0], [555.0, 356.0], [560.0, 360.0], [560.0, 352.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4023", "label": "NetworkSegment_61", "segmentCordinates": [[560.0, 336.0], [560.0, 313.0], [560.0, 309.0], [560.0, 313.0], [560.0, 305.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"NrofConnections": 2, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4427", "label": "NetworkSegment_68", "segmentCordinates": [[560.0, 375.0], [560.0, 360.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"NrofConnections": 3, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4658", "label": "NetworkSegment_71", "segmentCordinates": [[560.0, 336.0], [573.0, 336.0], [581.0, 336.0], [581.0, 326.0], [573.0, 336.0], [589.0, 336.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "#fabebe", "font": {"color": "white"}, "id": "XMP_2831", "isPartofSegment": "XMP_4023", "label": "SwingCheckValve_XMP_2831", "position": [[560.0, 309.0], [560.0, 313.0], [560.0, 305.0]], "segmentCordinates": [[560.0, 336.0], [560.0, 313.0], [560.0, 309.0], [560.0, 313.0], [560.0, 305.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4026", "type": "component"}, {"NrofConnections": 1, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4106", "label": "NetworkSegment_62", "segmentCordinates": [[560.0, 375.0], [566.9999, 375.0], [571.0, 375.0], [567.0, 375.0], [575.0, 375.0], [576.0, 375.0], [575.0, 375.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3027", "isPartofSegment": null, "label": "GateValve_XMP_3027", "segmentCordinates": [[571.0, 375.0], [567.0, 375.0], [575.0, 375.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3031", "isPartofSegment": null, "label": "Flange_XMP_3031", "segmentCordinates": [[576.0, 375.0], [575.0, 375.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4424", "label": "NetworkSegment_67", "segmentCordinates": [[560.0, 386.0], [560.0, 375.0], [560.0, 375.0], [560.0, 375.0], [560.0, 375.0], [560.0, 375.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"NrofConnections": 2, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4114", "label": "NetworkSegment_63", "segmentCordinates": [[563.0, 356.0], [567.0, 356.0], [575.0, 356.0], [575.0, 346.0], [567.0, 356.0], [583.0, 356.0], [584.0, 356.0], [583.0, 356.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3057", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3057", "segmentCordinates": [[575.0, 356.0], [575.0, 346.0], [567.0, 356.0], [583.0, 356.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3062", "isPartofSegment": null, "label": "Flange_XMP_3062", "segmentCordinates": [[584.0, 356.0], [583.0, 356.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4397", "isPartofSegment": "XMP_4402", "label": "PipeTee_XMP_4397", "position": [[560.0, 395.0], [560.0, 395.0], [560.0, 395.0], [560.0, 395.0]], "segmentCordinates": [[560.0, 405.0], [560.0, 395.0], [560.0, 395.0], [560.0, 395.0], [560.0, 395.0], [560.0, 395.0], [560.0, 409.0], [560.0, 413.0], [560.0, 405.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4026", "type": "component"}, {"NrofConnections": 3, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4402", "label": "NetworkSegment_64", "segmentCordinates": [[560.0, 405.0], [560.0, 395.0], [560.0, 395.0], [560.0, 395.0], [560.0, 395.0], [560.0, 395.0], [560.0, 409.0], [560.0, 413.0], [560.0, 405.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2827", "isPartofSegment": null, "label": "SwingCheckValve_XMP_2827", "segmentCordinates": [[560.0, 409.0], [560.0, 413.0], [560.0, 405.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4405", "label": "NetworkSegment_65", "segmentCordinates": [[560.0, 395.0], [560.0, 390.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4411", "isPartofSegment": "XMP_4421", "label": "PipeTee_XMP_4411", "position": [[560.0, 386.0], [560.0, 386.0], [560.0, 386.0], [560.0, 386.0]], "segmentCordinates": [[560.0, 388.0], [560.0, 386.0], [560.0, 386.0], [560.0, 386.0], [560.0, 386.0], [560.0, 386.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4026", "type": "component"}, {"NrofConnections": 3, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4421", "label": "NetworkSegment_66", "segmentCordinates": [[560.0, 388.0], [560.0, 386.0], [560.0, 386.0], [560.0, 386.0], [560.0, 386.0], [560.0, 386.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"NrofConnections": 2, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4638", "label": "NetworkSegment_70", "segmentCordinates": [[560.0, 386.0], [549.0, 386.0], [549.0, 386.0], [549.0, 386.0], [547.0, 386.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4416", "isPartofSegment": "XMP_4424", "label": "PipeTee_XMP_4416", "position": [[560.0, 375.0], [560.0, 375.0], [560.0, 375.0], [560.0, 375.0]], "segmentCordinates": [[560.0, 386.0], [560.0, 375.0], [560.0, 375.0], [560.0, 375.0], [560.0, 375.0], [560.0, 375.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4026", "type": "component"}, {"NrofConnections": 1, "color": "#fabebe", "font": {"color": "white"}, "id": "XMP_4542", "label": "NetworkSegment_69", "segmentCordinates": [[560.0, 280.0], [568.0, 280.0], [572.0, 280.0], [568.0, 280.0], [576.0, 280.0], [577.0, 280.0], [576.0, 280.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4026", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3593", "isPartofSegment": null, "label": "GateValve_XMP_3593", "segmentCordinates": [[572.0, 280.0], [568.0, 280.0], [576.0, 280.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3597", "isPartofSegment": null, "label": "Flange_XMP_3597", "segmentCordinates": [[577.0, 280.0], [576.0, 280.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3678", "isPartofSegment": null, "label": "Flange_XMP_3678", "segmentCordinates": [[549.0, 386.0], [549.0, 386.0], [547.0, 386.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3729", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3729", "segmentCordinates": [[581.0, 336.0], [581.0, 326.0], [573.0, 336.0], [589.0, 336.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#008080", "font": {"color": "white"}, "id": "XMP_4035", "isPartofSegment": "XMP_4040", "label": "PipeTee_XMP_4035", "position": [[769.0, 481.0], [769.0, 481.0], [769.0, 481.0], [769.0, 481.0]], "segmentCordinates": [[769.0, 460.0], [769.0, 481.0], [769.0, 481.0], [769.0, 481.0], [769.0, 481.0], [769.0, 481.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4046", "type": "component"}, {"NrofConnections": 3, "color": "#008080", "font": {"color": "white"}, "id": "XMP_4040", "label": "NetworkSegment_72", "segmentCordinates": [[769.0, 460.0], [769.0, 481.0], [769.0, 481.0], [769.0, 481.0], [769.0, 481.0], [769.0, 481.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4046", "type": "segment"}, {"NrofConnections": 2, "color": "#008080", "font": {"color": "white"}, "id": "XMP_4043", "label": "NetworkSegment_73", "segmentCordinates": [[769.0, 481.0], [769.0, 496.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4046", "type": "segment"}, {"NrofConnections": 1, "color": "#008080", "font": {"color": "white"}, "id": "XMP_4102", "label": "NetworkSegment_74", "segmentCordinates": [[769.0, 481.0], [753.0, 481.0], [749.0, 481.0], [753.0, 481.0], [745.0, 481.0], [744.0, 481.0], [745.0, 481.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4046", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3020", "isPartofSegment": null, "label": "GateValve_XMP_3020", "segmentCordinates": [[749.0, 481.0], [753.0, 481.0], [745.0, 481.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3024", "isPartofSegment": null, "label": "Flange_XMP_3024", "segmentCordinates": [[744.0, 481.0], [745.0, 481.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2966", "isPartofSegment": null, "label": "GateValve_XMP_2966", "segmentCordinates": [[607.0, 129.0], [603.0, 129.0], [611.0, 129.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2979", "isPartofSegment": null, "label": "PipingComponent_XMP_2979", "segmentCordinates": [[601.0, 129.0], [599.0, 129.0], [603.0, 129.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 1, "color": "#fffac8", "font": {"color": "white"}, "id": "XMP_4070", "label": "NetworkSegment_76", "segmentCordinates": [[539.0, 129.0], [539.0, 116.0], [539.0, 112.0], [539.0, 116.0], [539.0, 108.0], [539.0, 107.0], [539.0, 108.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4074", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2972", "isPartofSegment": null, "label": "GateValve_XMP_2972", "segmentCordinates": [[539.0, 112.0], [539.0, 116.0], [539.0, 108.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2976", "isPartofSegment": null, "label": "Flange_XMP_2976", "segmentCordinates": [[539.0, 107.0], [539.0, 108.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 1, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4084", "label": "NetworkSegment_77", "segmentCordinates": [[217.0, 233.0], [217.0, 224.0], [217.0, 220.0], [217.0, 224.0], [217.0, 216.0], [217.0, 215.0], [217.0, 216.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2992", "isPartofSegment": null, "label": "GateValve_XMP_2992", "segmentCordinates": [[217.0, 220.0], [217.0, 224.0], [217.0, 216.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3000", "isPartofSegment": null, "label": "Flange_XMP_3000", "segmentCordinates": [[217.0, 215.0], [217.0, 216.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4216", "label": "NetworkSegment_80", "segmentCordinates": [[208.0, 233.0], [217.0, 233.0], [217.0, 233.0], [217.0, 233.0], [217.0, 233.0], [217.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"NrofConnections": 2, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4219", "label": "NetworkSegment_81", "segmentCordinates": [[217.0, 233.0], [223.0, 233.0], [227.0, 233.0], [223.0, 233.0], [231.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"NrofConnections": 1, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4090", "label": "NetworkSegment_78", "segmentCordinates": [[239.0, 233.0], [239.0, 224.0], [239.0, 220.0], [239.0, 224.0], [239.0, 216.0], [239.0, 215.0], [239.0, 216.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2996", "isPartofSegment": null, "label": "GateValve_XMP_2996", "segmentCordinates": [[239.0, 220.0], [239.0, 224.0], [239.0, 216.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3003", "isPartofSegment": null, "label": "Flange_XMP_3003", "segmentCordinates": [[239.0, 215.0], [239.0, 216.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4463", "label": "NetworkSegment_82", "segmentCordinates": [[231.0, 233.0], [239.0, 233.0], [239.0, 233.0], [239.0, 233.0], [239.0, 233.0], [239.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"NrofConnections": 2, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4466", "label": "NetworkSegment_83", "segmentCordinates": [[239.0, 233.0], [246.0, 233.0], [246.0, 233.0], [246.0, 233.0], [250.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"color": "#800000", "font": {"color": "white"}, "id": "XMP_2672", "isPartofSegment": "XMP_4205", "label": "SwingCheckValve_XMP_2672", "position": [[204.0, 233.0], [200.0, 233.0], [208.0, 233.0]], "segmentCordinates": [[193.0, 233.0], [200.0, 233.0], [204.0, 233.0], [200.0, 233.0], [208.0, 233.0], [191.0, 233.0], [189.0, 233.0], [193.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4088", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2985", "isPartofSegment": null, "label": "PipingComponent_XMP_2985", "segmentCordinates": [[191.0, 233.0], [189.0, 233.0], [193.0, 233.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#800000", "font": {"color": "white"}, "id": "XMP_4211", "isPartofSegment": "XMP_4216", "label": "PipeTee_XMP_4211", "position": [[217.0, 233.0], [217.0, 233.0], [217.0, 233.0], [217.0, 233.0]], "segmentCordinates": [[208.0, 233.0], [217.0, 233.0], [217.0, 233.0], [217.0, 233.0], [217.0, 233.0], [217.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4088", "type": "component"}, {"color": "#800000", "font": {"color": "white"}, "id": "XMP_2647", "isPartofSegment": "XMP_4219", "label": "SwingCheckValve_XMP_2647", "position": [[227.0, 233.0], [223.0, 233.0], [231.0, 233.0]], "segmentCordinates": [[217.0, 233.0], [223.0, 233.0], [227.0, 233.0], [223.0, 233.0], [231.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4088", "type": "component"}, {"color": "#800000", "font": {"color": "white"}, "id": "XMP_4458", "isPartofSegment": "XMP_4463", "label": "PipeTee_XMP_4458", "position": [[239.0, 233.0], [239.0, 233.0], [239.0, 233.0], [239.0, 233.0]], "segmentCordinates": [[231.0, 233.0], [239.0, 233.0], [239.0, 233.0], [239.0, 233.0], [239.0, 233.0], [239.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4088", "type": "component"}, {"color": "#800000", "font": {"color": "white"}, "id": "XMP_3543", "isPartofSegment": "XMP_4466", "label": "PipeReducer_XMP_3543", "position": [[246.0, 233.0], [246.0, 233.0], [250.0, 233.0]], "segmentCordinates": [[239.0, 233.0], [246.0, 233.0], [246.0, 233.0], [246.0, 233.0], [250.0, 233.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4088", "type": "component"}, {"NrofConnections": 2, "color": "#800000", "font": {"color": "white"}, "id": "XMP_4469", "label": "NetworkSegment_84", "segmentCordinates": [[250.0, 233.0], [257.0, 233.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4088", "type": "segment"}, {"NrofConnections": 2, "color": "#aaffc3", "font": {"color": "white"}, "id": "XMP_4118", "label": "NetworkSegment_85", "segmentCordinates": [[298.0, 177.0], [293.0, 177.0], [293.0, 188.0], [293.0, 196.0], [283.0, 196.0], [293.0, 204.0], [293.0, 188.0], [293.0, 205.0], [293.0, 204.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4122", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3065", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3065", "segmentCordinates": [[293.0, 196.0], [283.0, 196.0], [293.0, 204.0], [293.0, 188.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3070", "isPartofSegment": null, "label": "Flange_XMP_3070", "segmentCordinates": [[293.0, 205.0], [293.0, 204.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#808000", "font": {"color": "white"}, "id": "XMP_4124", "label": "NetworkSegment_86", "segmentCordinates": [[396.0, 177.0], [389.0, 177.0], [389.0, 188.0], [389.0, 196.0], [379.0, 196.0], [389.0, 188.0], [389.0, 204.0], [389.0, 205.0], [389.0, 204.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4128", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3073", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3073", "segmentCordinates": [[389.0, 196.0], [379.0, 196.0], [389.0, 188.0], [389.0, 204.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3078", "isPartofSegment": null, "label": "Flange_XMP_3078", "segmentCordinates": [[389.0, 205.0], [389.0, 204.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#ffd8b1", "font": {"color": "white"}, "id": "XMP_4130", "label": "NetworkSegment_87", "segmentCordinates": [[473.0, 177.0], [467.0, 177.0], [467.0, 188.0], [467.0, 196.0], [457.0, 196.0], [467.0, 188.0], [467.0, 204.0], [467.0, 205.0], [467.0, 204.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4134", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3081", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3081", "segmentCordinates": [[467.0, 196.0], [457.0, 196.0], [467.0, 188.0], [467.0, 204.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3086", "isPartofSegment": null, "label": "Flange_XMP_3086", "segmentCordinates": [[467.0, 205.0], [467.0, 204.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#ffd8b1", "font": {"color": "white"}, "id": "XMP_4650", "label": "NetworkSegment_88", "segmentCordinates": [[476.0, 213.0], [475.9998, 181.0], [476.0, 215.0], [476.0, 215.0], [476.0, 213.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4134", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3686", "isPartofSegment": null, "label": "Flange_XMP_3686", "segmentCordinates": [[476.0, 215.0], [476.0, 215.0], [476.0, 213.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4148", "label": "NetworkSegment_89", "segmentCordinates": [[626.0, 246.0], [626.0, 242.0], [626.0, 248.0], [626.0, 248.0], [626.0, 246.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3119", "isPartofSegment": null, "label": "Flange_XMP_3119", "segmentCordinates": [[626.0, 248.0], [626.0, 248.0], [626.0, 246.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4194", "label": "NetworkSegment_96", "segmentCordinates": [[626.0, 268.0], [626.0, 264.0], [626.0, 256.0], [633.0, 253.5], [626.0, 264.0], [626.0, 248.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "#000080", "font": {"color": "white"}, "id": "XMP_3127", "isPartofSegment": "XMP_4154", "label": "SwingCheckValve_XMP_3127", "position": [[626.0, 323.0], [626.0, 327.0], [626.0, 319.0]], "segmentCordinates": [[763.0, 355.0], [626.0, 355.0], [626.0, 327.0], [626.0, 323.0], [626.0, 327.0], [626.0, 319.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4152", "type": "component"}, {"NrofConnections": 3, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4165", "label": "NetworkSegment_91", "segmentCordinates": [[626.0, 319.0], [626.0, 317.0], [626.0, 317.0], [626.0, 317.0], [626.0, 317.0], [626.0, 317.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "#000080", "font": {"color": "white"}, "id": "XMP_4160", "isPartofSegment": "XMP_4165", "label": "PipeTee_XMP_4160", "position": [[626.0, 317.0], [626.0, 317.0], [626.0, 317.0], [626.0, 317.0]], "segmentCordinates": [[626.0, 319.0], [626.0, 317.0], [626.0, 317.0], [626.0, 317.0], [626.0, 317.0], [626.0, 317.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4152", "type": "component"}, {"NrofConnections": 4, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4168", "label": "NetworkSegment_92", "segmentCordinates": [[626.0, 317.0], [626.0, 312.0], [626.0, 308.0], [612.0, 308.0], [621.0, 308.0], [626.0, 312.0], [626.0, 304.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"NrofConnections": 1, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4197", "label": "NetworkSegment_97", "segmentCordinates": [[626.0, 317.0], [640.0, 317.0], [644.0, 317.0], [640.0, 317.0], [648.0, 317.0], [649.0, 317.0], [648.0, 317.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3097", "isPartofSegment": null, "label": "BallValve_XMP_3097", "segmentCordinates": [[626.0, 308.0], [612.0, 308.0], [621.0, 308.0], [626.0, 312.0], [626.0, 304.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4178", "label": "NetworkSegment_93", "segmentCordinates": [[626.0, 304.0], [626.0, 299.0], [626.0, 299.0], [626.0, 299.0], [626.0, 299.0], [626.0, 299.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "#000080", "font": {"color": "white"}, "id": "XMP_4173", "isPartofSegment": "XMP_4178", "label": "PipeTee_XMP_4173", "position": [[626.0, 299.0], [626.0, 299.0], [626.0, 299.0], [626.0, 299.0]], "segmentCordinates": [[626.0, 304.0], [626.0, 299.0], [626.0, 299.0], [626.0, 299.0], [626.0, 299.0], [626.0, 299.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4152", "type": "component"}, {"NrofConnections": 2, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4181", "label": "NetworkSegment_94", "segmentCordinates": [[626.0, 299.0], [626.0, 296.0], [626.0, 292.0], [626.0, 296.0], [626.0, 288.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"NrofConnections": 1, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4201", "label": "NetworkSegment_98", "segmentCordinates": [[626.0, 299.0], [640.0, 299.0], [644.0, 299.0], [640.0, 299.0], [648.0, 299.0], [649.0, 299.0], [648.0, 299.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "#000080", "font": {"color": "white"}, "id": "XMP_3131", "isPartofSegment": "XMP_4181", "label": "SwingCheckValve_XMP_3131", "position": [[626.0, 292.0], [626.0, 296.0], [626.0, 288.0]], "segmentCordinates": [[626.0, 299.0], [626.0, 296.0], [626.0, 292.0], [626.0, 296.0], [626.0, 288.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4152", "type": "component"}, {"NrofConnections": 3, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4191", "label": "NetworkSegment_95", "segmentCordinates": [[626.0, 288.0], [626.0, 268.0], [626.0, 268.0], [626.0, 268.0], [626.0, 268.0], [626.0, 268.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "#000080", "font": {"color": "white"}, "id": "XMP_4186", "isPartofSegment": "XMP_4191", "label": "PipeTee_XMP_4186", "position": [[626.0, 268.0], [626.0, 268.0], [626.0, 268.0], [626.0, 268.0]], "segmentCordinates": [[626.0, 288.0], [626.0, 268.0], [626.0, 268.0], [626.0, 268.0], [626.0, 268.0], [626.0, 268.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4152", "type": "component"}, {"NrofConnections": 1, "color": "#000080", "font": {"color": "white"}, "id": "XMP_4654", "label": "NetworkSegment_99", "segmentCordinates": [[626.0, 268.0], [645.0, 268.0], [649.0, 268.0], [645.0, 268.0], [653.0, 268.0], [654.0, 268.0], [653.0, 268.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4152", "type": "segment"}, {"color": "#000080", "font": {"color": "white"}, "id": "XMP_3114", "isPartofSegment": "XMP_4194", "label": "BallValve_XMP_3114", "position": [[626.0, 256.0], [633.0, 253.5], [626.0, 264.0], [626.0, 248.0]], "segmentCordinates": [[626.0, 268.0], [626.0, 264.0], [626.0, 256.0], [633.0, 253.5], [626.0, 264.0], [626.0, 248.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4152", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3135", "isPartofSegment": null, "label": "GateValve_XMP_3135", "segmentCordinates": [[644.0, 317.0], [640.0, 317.0], [648.0, 317.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3143", "isPartofSegment": null, "label": "Flange_XMP_3143", "segmentCordinates": [[649.0, 317.0], [648.0, 317.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3139", "isPartofSegment": null, "label": "GateValve_XMP_3139", "segmentCordinates": [[644.0, 299.0], [640.0, 299.0], [648.0, 299.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3146", "isPartofSegment": null, "label": "Flange_XMP_3146", "segmentCordinates": [[649.0, 299.0], [648.0, 299.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3718", "isPartofSegment": null, "label": "GateValve_XMP_3718", "segmentCordinates": [[649.0, 268.0], [645.0, 268.0], [653.0, 268.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3722", "isPartofSegment": null, "label": "Flange_XMP_3722", "segmentCordinates": [[654.0, 268.0], [653.0, 268.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 4, "color": "#808080", "font": {"color": "white"}, "id": "XMP_4269", "label": "NetworkSegment_100", "segmentCordinates": [[655.0, 395.0], [769.0001, 395.0001], [769.0, 450.0], [769.0, 454.0], [755.0, 454.0], [764.0, 454.0], [769.0, 450.0], [769.0, 458.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4273", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2860", "isPartofSegment": null, "label": "BallValve_XMP_2860", "segmentCordinates": [[769.0, 454.0], [755.0, 454.0], [764.0, 454.0], [769.0, 450.0], [769.0, 458.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4438", "label": "NetworkSegment_104", "segmentCordinates": [[520.0, 181.0], [530.0, 181.0], [538.0, 181.0], [538.0, 171.0], [530.0, 181.0], [546.0, 181.0], [546.0, 181.0], [546.0, 181.0], [548.0, 181.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3458", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3458", "segmentCordinates": [[538.0, 181.0], [538.0, 171.0], [530.0, 181.0], [546.0, 181.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3537", "isPartofSegment": null, "label": "Flange_XMP_3537", "segmentCordinates": [[546.0, 181.0], [546.0, 181.0], [548.0, 181.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#000000", "font": {"color": "white"}, "id": "XMP_4527", "isPartofSegment": "XMP_4532", "label": "PipeTee_XMP_4527", "position": [[520.0, 214.0], [520.0, 214.0], [520.0, 214.0], [520.0, 214.0]], "segmentCordinates": [[520.0, 207.0], [520.0, 214.0], [520.0, 214.0], [520.0, 214.0], [520.0, 214.0], [520.0, 214.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4300", "type": "component"}, {"NrofConnections": 3, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4532", "label": "NetworkSegment_105", "segmentCordinates": [[520.0, 207.0], [520.0, 214.0], [520.0, 214.0], [520.0, 214.0], [520.0, 214.0], [520.0, 214.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"NrofConnections": 2, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4535", "label": "NetworkSegment_106", "segmentCordinates": [[520.0, 214.0], [520.0, 223.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"NrofConnections": 2, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4581", "label": "NetworkSegment_108", "segmentCordinates": [[606.0, 214.0], [520.0, 214.0], [610.0, 214.0], [614.0, 214.0], [606.0, 214.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3630", "isPartofSegment": null, "label": "GateValve_XMP_3630", "segmentCordinates": [[610.0, 214.0], [614.0, 214.0], [606.0, 214.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4599", "label": "NetworkSegment_135", "segmentCordinates": [[633.0, 214.0], [614.0, 214.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4558", "type": "segment"}, {"NrofConnections": 2, "color": "#000000", "font": {"color": "white"}, "id": "XMP_4585", "label": "NetworkSegment_109", "segmentCordinates": [[610.0, 213.0], [610.0, 207.0], [610.0, 199.0], [620.0, 199.0], [610.0, 207.0], [610.0, 191.0], [610.0, 190.0], [610.0, 191.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4300", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3634", "isPartofSegment": null, "label": "DoubleBlockAndBleedValve_XMP_3634", "segmentCordinates": [[610.0, 199.0], [620.0, 199.0], [610.0, 207.0], [610.0, 191.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3639", "isPartofSegment": null, "label": "Flange_XMP_3639", "segmentCordinates": [[610.0, 190.0], [610.0, 191.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2889", "isPartofSegment": null, "label": "PipeReducer_XMP_2889", "segmentCordinates": [[769.0, 506.0], [769.0, 506.0], [769.0, 510.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2893", "isPartofSegment": null, "label": "BallValve_XMP_2893", "segmentCordinates": [[769.0, 502.0], [769.0, 498.0], [769.0, 506.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3257", "isPartofSegment": null, "label": "GateValve_XMP_3257", "segmentCordinates": [[112.0, 358.0], [112.0, 362.0], [112.0, 354.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#fabed4", "font": {"color": "white"}, "id": "XMP_4490", "label": "NetworkSegment_114", "segmentCordinates": [[112.0, 354.0], [112.0, 349.0], [112.0, 349.0], [112.0, 349.0], [112.0, 349.0], [112.0, 349.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4346", "type": "segment"}, {"NrofConnections": 1, "color": "#fabed4", "font": {"color": "white"}, "id": "XMP_4360", "label": "NetworkSegment_113", "segmentCordinates": [[112.0, 349.0], [121.0, 349.0], [125.0, 349.0], [121.0, 349.0], [129.0, 349.0], [130.0, 349.0], [129.0, 349.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4346", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3269", "isPartofSegment": null, "label": "GateValve_XMP_3269", "segmentCordinates": [[125.0, 349.0], [121.0, 349.0], [129.0, 349.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3320", "isPartofSegment": null, "label": "Flange_XMP_3320", "segmentCordinates": [[130.0, 349.0], [129.0, 349.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#fabed4", "font": {"color": "white"}, "id": "XMP_4493", "label": "NetworkSegment_115", "segmentCordinates": [[112.0, 349.0], [112.0, 341.0], [112.0, 339.0], [112.0, 341.0], [112.0, 337.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4346", "type": "segment"}, {"color": "#fabed4", "font": {"color": "white"}, "id": "XMP_4485", "isPartofSegment": "XMP_4490", "label": "PipeTee_XMP_4485", "position": [[112.0, 349.0], [112.0, 349.0], [112.0, 349.0], [112.0, 349.0]], "segmentCordinates": [[112.0, 354.0], [112.0, 349.0], [112.0, 349.0], [112.0, 349.0], [112.0, 349.0], [112.0, 349.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4346", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3561", "isPartofSegment": null, "label": "PipingComponent_XMP_3561", "segmentCordinates": [[112.0, 339.0], [112.0, 341.0], [112.0, 337.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3261", "isPartofSegment": null, "label": "GateValve_XMP_3261", "segmentCordinates": [[340.0, 375.0], [340.0, 379.0], [340.0, 371.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#dcbeff", "font": {"color": "white"}, "id": "XMP_4504", "label": "NetworkSegment_118", "segmentCordinates": [[340.0, 371.0], [340.0, 366.0], [340.0, 366.0], [340.0, 366.0], [340.0, 366.0], [340.0, 366.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4352", "type": "segment"}, {"NrofConnections": 1, "color": "#dcbeff", "font": {"color": "white"}, "id": "XMP_4364", "label": "NetworkSegment_117", "segmentCordinates": [[340.0, 366.0], [349.0, 366.0], [353.0, 366.0], [349.0, 366.0], [357.0, 366.0], [358.0, 366.0], [357.0, 366.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4352", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3273", "isPartofSegment": null, "label": "GateValve_XMP_3273", "segmentCordinates": [[353.0, 366.0], [349.0, 366.0], [357.0, 366.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3323", "isPartofSegment": null, "label": "Flange_XMP_3323", "segmentCordinates": [[358.0, 366.0], [357.0, 366.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#dcbeff", "font": {"color": "white"}, "id": "XMP_4507", "label": "NetworkSegment_119", "segmentCordinates": [[340.0, 366.0], [340.0, 355.0], [340.0, 353.0], [340.0, 355.0], [340.0, 351.0], [340.0, 347.0], [340.0, 351.0], [340.0, 343.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4352", "type": "segment"}, {"color": "#dcbeff", "font": {"color": "white"}, "id": "XMP_4499", "isPartofSegment": "XMP_4504", "label": "PipeTee_XMP_4499", "position": [[340.0, 366.0], [340.0, 366.0], [340.0, 366.0], [340.0, 366.0]], "segmentCordinates": [[340.0, 371.0], [340.0, 366.0], [340.0, 366.0], [340.0, 366.0], [340.0, 366.0], [340.0, 366.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4352", "type": "component"}, {"color": "#dcbeff", "font": {"color": "white"}, "id": "XMP_3567", "isPartofSegment": "XMP_4507", "label": "PipingComponent_XMP_3567", "position": [[340.0, 353.0], [340.0, 355.0], [340.0, 351.0]], "segmentCordinates": [[340.0, 366.0], [340.0, 355.0], [340.0, 353.0], [340.0, 355.0], [340.0, 351.0], [340.0, 347.0], [340.0, 351.0], [340.0, 343.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4352", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3285", "isPartofSegment": null, "label": "GateValve_XMP_3285", "segmentCordinates": [[340.0, 347.0], [340.0, 351.0], [340.0, 343.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3265", "isPartofSegment": null, "label": "GateValve_XMP_3265", "segmentCordinates": [[433.0, 393.0], [433.0, 397.0], [433.0, 389.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 3, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4518", "label": "NetworkSegment_122", "segmentCordinates": [[433.0, 389.0], [433.0, 384.0], [433.0, 384.0], [433.0, 384.0], [433.0, 384.0], [433.0, 384.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4358", "type": "segment"}, {"NrofConnections": 1, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4368", "label": "NetworkSegment_121", "segmentCordinates": [[433.0, 384.0], [445.0, 384.0], [449.0, 384.0], [445.0, 384.0], [453.0, 384.0], [454.0, 384.0], [453.0, 384.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4358", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3277", "isPartofSegment": null, "label": "GateValve_XMP_3277", "segmentCordinates": [[449.0, 384.0], [445.0, 384.0], [453.0, 384.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3311", "isPartofSegment": null, "label": "Flange_XMP_3311", "segmentCordinates": [[454.0, 384.0], [453.0, 384.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4521", "label": "NetworkSegment_123", "segmentCordinates": [[433.0, 384.0], [433.0, 375.0], [433.0, 373.0], [433.0, 375.0], [433.0, 371.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4358", "type": "segment"}, {"color": "#e6194b", "font": {"color": "white"}, "id": "XMP_4513", "isPartofSegment": "XMP_4518", "label": "PipeTee_XMP_4513", "position": [[433.0, 384.0], [433.0, 384.0], [433.0, 384.0], [433.0, 384.0]], "segmentCordinates": [[433.0, 389.0], [433.0, 384.0], [433.0, 384.0], [433.0, 384.0], [433.0, 384.0], [433.0, 384.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4358", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3573", "isPartofSegment": null, "label": "PipingComponent_XMP_3573", "segmentCordinates": [[433.0, 373.0], [433.0, 375.0], [433.0, 371.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3281", "isPartofSegment": null, "label": "GateValve_XMP_3281", "segmentCordinates": [[112.0, 333.0], [112.0, 337.0], [112.0, 329.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3289", "isPartofSegment": null, "label": "GateValve_XMP_3289", "segmentCordinates": [[433.0, 367.0], [433.0, 371.0], [433.0, 363.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#911eb4", "font": {"color": "white"}, "id": "XMP_3614", "isPartofSegment": "XMP_4554", "label": "SwingCheckValve_XMP_3614", "position": [[671.0, 214.0], [675.0, 214.0], [667.0, 214.0]], "segmentCordinates": [[764.0, 214.0], [675.0, 214.0], [671.0, 214.0], [675.0, 214.0], [667.0, 214.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4558", "type": "component"}, {"NrofConnections": 3, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4567", "label": "NetworkSegment_130", "segmentCordinates": [[667.0, 214.0], [651.0, 214.0], [651.0, 214.0], [651.0, 214.0], [651.0, 214.0], [651.0, 214.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4558", "type": "segment"}, {"color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4562", "isPartofSegment": "XMP_4567", "label": "PipeTee_XMP_4562", "position": [[651.0, 214.0], [651.0, 214.0], [651.0, 214.0], [651.0, 214.0]], "segmentCordinates": [[667.0, 214.0], [651.0, 214.0], [651.0, 214.0], [651.0, 214.0], [651.0, 214.0], [651.0, 214.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4558", "type": "component"}, {"NrofConnections": 2, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4570", "label": "NetworkSegment_131", "segmentCordinates": [[651.0, 214.0], [644.0, 214.0], [642.0, 214.0], [644.0, 214.0], [640.0, 214.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4558", "type": "segment"}, {"NrofConnections": 1, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4573", "label": "NetworkSegment_132", "segmentCordinates": [[651.0, 214.0], [651.0, 206.0], [651.0, 202.0], [651.0, 206.0], [651.0, 198.0], [651.0, 197.0], [651.0, 198.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4558", "type": "segment"}, {"color": "#911eb4", "font": {"color": "white"}, "id": "XMP_3618", "isPartofSegment": "XMP_4570", "label": "PipingComponent_XMP_3618", "position": [[642.0, 214.0], [644.0, 214.0], [640.0, 214.0]], "segmentCordinates": [[651.0, 214.0], [644.0, 214.0], [642.0, 214.0], [644.0, 214.0], [640.0, 214.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4558", "type": "component"}, {"NrofConnections": 3, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4596", "label": "NetworkSegment_134", "segmentCordinates": [[640.0, 214.0], [633.0, 214.0], [633.0, 214.0], [633.0, 214.0], [633.0, 214.0], [633.0, 214.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4558", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3622", "isPartofSegment": null, "label": "GateValve_XMP_3622", "segmentCordinates": [[651.0, 202.0], [651.0, 206.0], [651.0, 198.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3647", "isPartofSegment": null, "label": "Flange_XMP_3647", "segmentCordinates": [[651.0, 197.0], [651.0, 198.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 1, "color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4577", "label": "NetworkSegment_133", "segmentCordinates": [[633.0, 214.0], [633.0, 206.0], [633.0, 202.0], [633.0, 206.0], [633.0, 198.0], [633.0, 197.0], [633.0, 198.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_4558", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3626", "isPartofSegment": null, "label": "GateValve_XMP_3626", "segmentCordinates": [[633.0, 202.0], [633.0, 206.0], [633.0, 198.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3644", "isPartofSegment": null, "label": "Flange_XMP_3644", "segmentCordinates": [[633.0, 197.0], [633.0, 198.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "#911eb4", "font": {"color": "white"}, "id": "XMP_4591", "isPartofSegment": "XMP_4596", "label": "PipeTee_XMP_4591", "position": [[633.0, 214.0], [633.0, 214.0], [633.0, 214.0], [633.0, 214.0]], "segmentCordinates": [[640.0, 214.0], [633.0, 214.0], [633.0, 214.0], [633.0, 214.0], [633.0, 214.0], [633.0, 214.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4558", "type": "component"}, {"color": "#46f0f0", "font": {"color": "white"}, "id": "XMP_3662", "isPartofSegment": "XMP_4602", "label": "PipeReducer_XMP_3662", "position": [[257.0, 163.0], [257.0, 163.0], [257.0, 159.0]], "segmentCordinates": [[257.0, 171.0], [257.0, 163.0], [257.0, 163.0], [257.0, 163.0], [257.0, 159.0], [257.0, 175.0], [257.0, 179.0], [257.0, 171.0]], "shape": "diamond", "size": 20, "title": "Part of Piping Network System XMP_4606", "type": "component"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3348", "isPartofSegment": null, "label": "SwingCheckValve_XMP_3348", "segmentCordinates": [[257.0, 175.0], [257.0, 179.0], [257.0, 171.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"NrofConnections": 2, "color": "#0082c8", "font": {"color": "white"}, "id": "XMP_4313", "label": "NetworkSegment_29", "segmentCordinates": [[185.0, 322.0], [187.0, 322.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3904", "type": "segment"}, {"NrofConnections": 2, "color": "#f032e6", "font": {"color": "white"}, "id": "XMP_4275", "label": "NetworkSegment_52", "segmentCordinates": [[560.0, 434.0], [591.0, 434.0]], "shape": "dot", "size": 10, "title": "Part of Piping Network System XMP_3976", "type": "segment"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_2839", "isPartofSegment": null, "label": "Flange_XMP_2839", "segmentCordinates": [[257.0, 188.0], [257.0, 187.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3034", "isPartofSegment": null, "label": "Flange_XMP_3034", "segmentCordinates": [[590.0, 336.0], [589.0, 336.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}, {"color": "white", "component": true, "font": {"color": "white"}, "id": "XMP_3344", "isPartofSegment": null, "label": "GateValve_XMP_3344", "segmentCordinates": [[257.0, 183.0], [257.0, 187.0], [257.0, 179.0]], "shape": "diamond", "size": 20, "title": "Orphan PipingComponent"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "XMP_3885", "to": "XMP_3884", "width": 1}, {"arrows": "to", "from": "XMP_4065", "to": "XMP_4064", "width": 1}, {"arrows": "to", "from": "XMP_4155", "to": "XMP_4154", "width": 1}, {"arrows": "to", "from": "XMP_4209", "to": "XMP_4205", "width": 1}, {"arrows": "to", "from": "XMP_4243", "to": "XMP_4242", "width": 1}, {"arrows": "to", "from": "XMP_4303", "to": "XMP_4302", "width": 1}, {"arrows": "to", "from": "XMP_4310", "to": "XMP_4309", "width": 1}, {"arrows": "to", "from": "XMP_4325", "to": "XMP_4324", "width": 1}, {"arrows": "to", "from": "XMP_4329", "to": "XMP_4328", "width": 1}, {"arrows": "to", "from": "XMP_4335", "to": "XMP_4334", "width": 1}, {"arrows": "to", "from": "XMP_4343", "to": "XMP_4342", "width": 1}, {"arrows": "to", "from": "XMP_4349", "to": "XMP_4348", "width": 1}, {"arrows": "to", "from": "XMP_4355", "to": "XMP_4354", "width": 1}, {"arrows": "to", "from": "XMP_4373", "to": "XMP_4372", "width": 1}, {"arrows": "to", "from": "XMP_4379", "to": "XMP_4378", "width": 1}, {"arrows": "to", "from": "XMP_4385", "to": "XMP_4384", "width": 1}, {"arrows": "to", "from": "XMP_4391", "to": "XMP_4390", "width": 1}, {"arrows": "to", "from": "XMP_4477", "to": "XMP_4476", "width": 1}, {"arrows": "to", "from": "XMP_4551", "to": "XMP_4550", "width": 1}, {"arrows": "to", "from": "XMP_4555", "to": "XMP_4554", "width": 1}, {"arrows": "to", "from": "XMP_4603", "to": "XMP_4602", "width": 1}, {"arrows": "to", "from": "XMP_4666", "to": "XMP_4665", "width": 1}, {"arrows": "to", "from": "XMP_3799", "to": "XMP_3849", "width": 1}, {"arrows": "to", "from": "XMP_3849", "to": "XMP_2627", "width": 1}, {"arrows": "to", "from": "XMP_3849", "to": "XMP_3852", "width": 1}, {"arrows": "to", "from": "XMP_3849", "to": "XMP_4608", "width": 1}, {"arrows": "to", "from": "XMP_3804", "to": "XMP_3852", "width": 1}, {"arrows": "to", "from": "XMP_3852", "to": "XMP_3855", "width": 1}, {"arrows": "to", "from": "XMP_3852", "to": "XMP_3884", "width": 1}, {"arrows": "to", "from": "XMP_3852", "to": "XMP_4608", "width": 1}, {"arrows": "to", "from": "XMP_3809", "to": "XMP_3855", "width": 1}, {"arrows": "to", "from": "XMP_3855", "to": "XMP_3858", "width": 1}, {"arrows": "to", "from": "XMP_3855", "to": "XMP_4222", "width": 1}, {"arrows": "to", "from": "XMP_3855", "to": "XMP_3884", "width": 1}, {"arrows": "to", "from": "XMP_3814", "to": "XMP_3858", "width": 1}, {"arrows": "to", "from": "XMP_3858", "to": "XMP_3861", "width": 1}, {"arrows": "to", "from": "XMP_3858", "to": "XMP_4222", "width": 1}, {"arrows": "to", "from": "XMP_3858", "to": "XMP_4238", "width": 1}, {"arrows": "to", "from": "XMP_3819", "to": "XMP_3861", "width": 1}, {"arrows": "to", "from": "XMP_3861", "to": "XMP_3864", "width": 1}, {"arrows": "to", "from": "XMP_3861", "to": "XMP_4234", "width": 1}, {"arrows": "to", "from": "XMP_3861", "to": "XMP_4238", "width": 1}, {"arrows": "to", "from": "XMP_3824", "to": "XMP_3864", "width": 1}, {"arrows": "to", "from": "XMP_3864", "to": "XMP_3867", "width": 1}, {"arrows": "to", "from": "XMP_3864", "to": "XMP_3932", "width": 1}, {"arrows": "to", "from": "XMP_3864", "to": "XMP_4234", "width": 1}, {"arrows": "to", "from": "XMP_3829", "to": "XMP_3867", "width": 1}, {"arrows": "to", "from": "XMP_3867", "to": "XMP_3870", "width": 1}, {"arrows": "to", "from": "XMP_3867", "to": "XMP_3932", "width": 1}, {"arrows": "to", "from": "XMP_3867", "to": "XMP_4230", "width": 1}, {"arrows": "to", "from": "XMP_3834", "to": "XMP_3870", "width": 1}, {"arrows": "to", "from": "XMP_3870", "to": "XMP_3873", "width": 1}, {"arrows": "to", "from": "XMP_3870", "to": "XMP_4028", "width": 1}, {"arrows": "to", "from": "XMP_3870", "to": "XMP_4230", "width": 1}, {"arrows": "to", "from": "XMP_3839", "to": "XMP_3873", "width": 1}, {"arrows": "to", "from": "XMP_3873", "to": "XMP_3876", "width": 1}, {"arrows": "to", "from": "XMP_3873", "to": "XMP_4028", "width": 1}, {"arrows": "to", "from": "XMP_3873", "to": "XMP_4226", "width": 1}, {"arrows": "to", "from": "XMP_3844", "to": "XMP_3876", "width": 1}, {"arrows": "to", "from": "XMP_3876", "to": "XMP_3879", "width": 1}, {"arrows": "to", "from": "XMP_3876", "to": "XMP_4226", "width": 1}, {"arrows": "to", "from": "XMP_3876", "to": "XMP_4293", "width": 1}, {"arrows": "to", "from": "XMP_3876", "to": "XMP_4297", "width": 1}, {"arrows": "to", "from": "XMP_3879", "to": "XMP_2630", "width": 1}, {"arrows": "to", "from": "XMP_3879", "to": "XMP_4293", "width": 1}, {"arrows": "to", "from": "XMP_3879", "to": "XMP_4297", "width": 1}, {"arrows": "to", "from": "XMP_3932", "to": "XMP_2764", "width": 1}, {"arrows": "to", "from": "XMP_3932", "to": "XMP_2907", "width": 1}, {"arrows": "to", "from": "XMP_4028", "to": "XMP_2772", "width": 1}, {"arrows": "to", "from": "XMP_4028", "to": "XMP_2939", "width": 1}, {"arrows": "to", "from": "XMP_4222", "to": "XMP_2768", "width": 1}, {"arrows": "to", "from": "XMP_4222", "to": "XMP_2897", "width": 1}, {"arrows": "to", "from": "XMP_4226", "to": "XMP_2962", "width": 1}, {"arrows": "to", "from": "XMP_4230", "to": "XMP_3162", "width": 1}, {"arrows": "to", "from": "XMP_4234", "to": "XMP_3166", "width": 1}, {"arrows": "to", "from": "XMP_4238", "to": "XMP_3170", "width": 1}, {"arrows": "to", "from": "XMP_4110", "to": "XMP_3044", "width": 1}, {"arrows": "to", "from": "XMP_4110", "to": "XMP_3049", "width": 1}, {"arrows": "to", "from": "XMP_3884", "to": "XMP_4546", "width": 1}, {"arrows": "to", "from": "XMP_3547", "to": "XMP_4546", "width": 1}, {"arrows": "to", "from": "XMP_4546", "to": "XMP_2651", "width": 1}, {"arrows": "to", "from": "XMP_3890", "to": "XMP_2680", "width": 1}, {"arrows": "to", "from": "XMP_3890", "to": "XMP_2989", "width": 1}, {"arrows": "to", "from": "XMP_3890", "to": "XMP_4450", "width": 1}, {"arrows": "to", "from": "XMP_3890", "to": "XMP_4453", "width": 1}, {"arrows": "to", "from": "XMP_3896", "to": "XMP_2732", "width": 1}, {"arrows": "to", "from": "XMP_3896", "to": "XMP_4453", "width": 1}, {"arrows": "to", "from": "XMP_4309", "to": "XMP_3960", "width": 1}, {"arrows": "to", "from": "XMP_4309", "to": "XMP_3963", "width": 1}, {"arrows": "to", "from": "XMP_4445", "to": "XMP_4450", "width": 1}, {"arrows": "to", "from": "XMP_4450", "to": "XMP_4453", "width": 1}, {"arrows": "to", "from": "XMP_2684", "to": "XMP_4453", "width": 1}, {"arrows": "to", "from": "XMP_3900", "to": "XMP_2694", "width": 1}, {"arrows": "to", "from": "XMP_3900", "to": "XMP_3037", "width": 1}, {"arrows": "to", "from": "XMP_3900", "to": "XMP_3917", "width": 1}, {"arrows": "to", "from": "XMP_3900", "to": "XMP_3914", "width": 1}, {"arrows": "to", "from": "XMP_3917", "to": "XMP_3914", "width": 1}, {"arrows": "to", "from": "XMP_4317", "to": "XMP_2698", "width": 1}, {"arrows": "to", "from": "XMP_4317", "to": "XMP_3914", "width": 1}, {"arrows": "to", "from": "XMP_3909", "to": "XMP_3914", "width": 1}, {"arrows": "to", "from": "XMP_2702", "to": "XMP_3914", "width": 1}, {"arrows": "to", "from": "XMP_3920", "to": "XMP_3040", "width": 1}, {"arrows": "to", "from": "XMP_3920", "to": "XMP_3957", "width": 1}, {"arrows": "to", "from": "XMP_3920", "to": "XMP_3960", "width": 1}, {"arrows": "to", "from": "XMP_3939", "to": "XMP_3954", "width": 1}, {"arrows": "to", "from": "XMP_3954", "to": "XMP_3482", "width": 1}, {"arrows": "to", "from": "XMP_3954", "to": "XMP_3957", "width": 1}, {"arrows": "to", "from": "XMP_3954", "to": "XMP_4430", "width": 1}, {"arrows": "to", "from": "XMP_3944", "to": "XMP_3957", "width": 1}, {"arrows": "to", "from": "XMP_3957", "to": "XMP_3960", "width": 1}, {"arrows": "to", "from": "XMP_3957", "to": "XMP_4430", "width": 1}, {"arrows": "to", "from": "XMP_3949", "to": "XMP_3960", "width": 1}, {"arrows": "to", "from": "XMP_3960", "to": "XMP_3963", "width": 1}, {"arrows": "to", "from": "XMP_4430", "to": "XMP_3352", "width": 1}, {"arrows": "to", "from": "XMP_4430", "to": "XMP_3356", "width": 1}, {"arrows": "to", "from": "XMP_3926", "to": "XMP_2746", "width": 1}, {"arrows": "to", "from": "XMP_3926", "to": "XMP_3531", "width": 1}, {"arrows": "to", "from": "XMP_4144", "to": "XMP_4632", "width": 1}, {"arrows": "to", "from": "XMP_4144", "to": "XMP_4635", "width": 1}, {"arrows": "to", "from": "XMP_4612", "to": "XMP_2633", "width": 1}, {"arrows": "to", "from": "XMP_4612", "to": "XMP_4538", "width": 1}, {"arrows": "to", "from": "XMP_4619", "to": "XMP_4629", "width": 1}, {"arrows": "to", "from": "XMP_4629", "to": "XMP_4632", "width": 1}, {"arrows": "to", "from": "XMP_4624", "to": "XMP_4632", "width": 1}, {"arrows": "to", "from": "XMP_4632", "to": "XMP_4635", "width": 1}, {"arrows": "to", "from": "XMP_3966", "to": "XMP_2788", "width": 1}, {"arrows": "to", "from": "XMP_3966", "to": "XMP_3521", "width": 1}, {"arrows": "to", "from": "XMP_4338", "to": "XMP_3238", "width": 1}, {"arrows": "to", "from": "XMP_4338", "to": "XMP_3513", "width": 1}, {"arrows": "to", "from": "XMP_4434", "to": "XMP_3432", "width": 1}, {"arrows": "to", "from": "XMP_4434", "to": "XMP_3517", "width": 1}, {"arrows": "to", "from": "XMP_3972", "to": "XMP_2823", "width": 1}, {"arrows": "to", "from": "XMP_3972", "to": "XMP_3986", "width": 1}, {"arrows": "to", "from": "XMP_3989", "to": "XMP_4094", "width": 1}, {"arrows": "to", "from": "XMP_3989", "to": "XMP_3986", "width": 1}, {"arrows": "to", "from": "XMP_4094", "to": "XMP_3006", "width": 1}, {"arrows": "to", "from": "XMP_4094", "to": "XMP_3014", "width": 1}, {"arrows": "to", "from": "XMP_4094", "to": "XMP_3986", "width": 1}, {"arrows": "to", "from": "XMP_3981", "to": "XMP_3986", "width": 1}, {"arrows": "to", "from": "XMP_2807", "to": "XMP_3986", "width": 1}, {"arrows": "to", "from": "XMP_3986", "to": "XMP_3052", "width": 1}, {"arrows": "to", "from": "XMP_3992", "to": "XMP_2813", "width": 1}, {"arrows": "to", "from": "XMP_3992", "to": "XMP_4006", "width": 1}, {"arrows": "to", "from": "XMP_4009", "to": "XMP_4098", "width": 1}, {"arrows": "to", "from": "XMP_4009", "to": "XMP_4006", "width": 1}, {"arrows": "to", "from": "XMP_4098", "to": "XMP_3010", "width": 1}, {"arrows": "to", "from": "XMP_4098", "to": "XMP_3017", "width": 1}, {"arrows": "to", "from": "XMP_4098", "to": "XMP_4006", "width": 1}, {"arrows": "to", "from": "XMP_4001", "to": "XMP_4006", "width": 1}, {"arrows": "to", "from": "XMP_2817", "to": "XMP_4006", "width": 1}, {"arrows": "to", "from": "XMP_4015", "to": "XMP_4020", "width": 1}, {"arrows": "to", "from": "XMP_4020", "to": "XMP_3370", "width": 1}, {"arrows": "to", "from": "XMP_4020", "to": "XMP_4023", "width": 1}, {"arrows": "to", "from": "XMP_4020", "to": "XMP_4427", "width": 1}, {"arrows": "to", "from": "XMP_4020", "to": "XMP_4658", "width": 1}, {"arrows": "to", "from": "XMP_2831", "to": "XMP_4023", "width": 1}, {"arrows": "to", "from": "XMP_4023", "to": "XMP_4658", "width": 1}, {"arrows": "to", "from": "XMP_4106", "to": "XMP_3027", "width": 1}, {"arrows": "to", "from": "XMP_4106", "to": "XMP_3031", "width": 1}, {"arrows": "to", "from": "XMP_4106", "to": "XMP_4424", "width": 1}, {"arrows": "to", "from": "XMP_4106", "to": "XMP_4427", "width": 1}, {"arrows": "to", "from": "XMP_4114", "to": "XMP_3057", "width": 1}, {"arrows": "to", "from": "XMP_4114", "to": "XMP_3062", "width": 1}, {"arrows": "to", "from": "XMP_4397", "to": "XMP_4402", "width": 1}, {"arrows": "to", "from": "XMP_4402", "to": "XMP_2827", "width": 1}, {"arrows": "to", "from": "XMP_4402", "to": "XMP_4405", "width": 1}, {"arrows": "to", "from": "XMP_4402", "to": "XMP_4390", "width": 1}, {"arrows": "to", "from": "XMP_4405", "to": "XMP_4390", "width": 1}, {"arrows": "to", "from": "XMP_4411", "to": "XMP_4421", "width": 1}, {"arrows": "to", "from": "XMP_4421", "to": "XMP_4424", "width": 1}, {"arrows": "to", "from": "XMP_4421", "to": "XMP_4638", "width": 1}, {"arrows": "to", "from": "XMP_4416", "to": "XMP_4424", "width": 1}, {"arrows": "to", "from": "XMP_4424", "to": "XMP_4427", "width": 1}, {"arrows": "to", "from": "XMP_4424", "to": "XMP_4638", "width": 1}, {"arrows": "to", "from": "XMP_4542", "to": "XMP_3593", "width": 1}, {"arrows": "to", "from": "XMP_4542", "to": "XMP_3597", "width": 1}, {"arrows": "to", "from": "XMP_4638", "to": "XMP_3678", "width": 1}, {"arrows": "to", "from": "XMP_4658", "to": "XMP_3729", "width": 1}, {"arrows": "to", "from": "XMP_4035", "to": "XMP_4040", "width": 1}, {"arrows": "to", "from": "XMP_4040", "to": "XMP_4043", "width": 1}, {"arrows": "to", "from": "XMP_4040", "to": "XMP_4102", "width": 1}, {"arrows": "to", "from": "XMP_4043", "to": "XMP_4102", "width": 1}, {"arrows": "to", "from": "XMP_4102", "to": "XMP_3020", "width": 1}, {"arrows": "to", "from": "XMP_4102", "to": "XMP_3024", "width": 1}, {"arrows": "to", "from": "XMP_4064", "to": "XMP_2966", "width": 1}, {"arrows": "to", "from": "XMP_4064", "to": "XMP_2979", "width": 1}, {"arrows": "to", "from": "XMP_4070", "to": "XMP_2972", "width": 1}, {"arrows": "to", "from": "XMP_4070", "to": "XMP_2976", "width": 1}, {"arrows": "to", "from": "XMP_4084", "to": "XMP_2992", "width": 1}, {"arrows": "to", "from": "XMP_4084", "to": "XMP_3000", "width": 1}, {"arrows": "to", "from": "XMP_4084", "to": "XMP_4216", "width": 1}, {"arrows": "to", "from": "XMP_4084", "to": "XMP_4219", "width": 1}, {"arrows": "to", "from": "XMP_4090", "to": "XMP_2996", "width": 1}, {"arrows": "to", "from": "XMP_4090", "to": "XMP_3003", "width": 1}, {"arrows": "to", "from": "XMP_4090", "to": "XMP_4463", "width": 1}, {"arrows": "to", "from": "XMP_4090", "to": "XMP_4466", "width": 1}, {"arrows": "to", "from": "XMP_2672", "to": "XMP_4205", "width": 1}, {"arrows": "to", "from": "XMP_4205", "to": "XMP_2985", "width": 1}, {"arrows": "to", "from": "XMP_4205", "to": "XMP_4216", "width": 1}, {"arrows": "to", "from": "XMP_4211", "to": "XMP_4216", "width": 1}, {"arrows": "to", "from": "XMP_4216", "to": "XMP_4219", "width": 1}, {"arrows": "to", "from": "XMP_2647", "to": "XMP_4219", "width": 1}, {"arrows": "to", "from": "XMP_4219", "to": "XMP_4463", "width": 1}, {"arrows": "to", "from": "XMP_4458", "to": "XMP_4463", "width": 1}, {"arrows": "to", "from": "XMP_4463", "to": "XMP_4466", "width": 1}, {"arrows": "to", "from": "XMP_3543", "to": "XMP_4466", "width": 1}, {"arrows": "to", "from": "XMP_4466", "to": "XMP_4469", "width": 1}, {"arrows": "to", "from": "XMP_4118", "to": "XMP_3065", "width": 1}, {"arrows": "to", "from": "XMP_4118", "to": "XMP_3070", "width": 1}, {"arrows": "to", "from": "XMP_4124", "to": "XMP_3073", "width": 1}, {"arrows": "to", "from": "XMP_4124", "to": "XMP_3078", "width": 1}, {"arrows": "to", "from": "XMP_4130", "to": "XMP_3081", "width": 1}, {"arrows": "to", "from": "XMP_4130", "to": "XMP_3086", "width": 1}, {"arrows": "to", "from": "XMP_4650", "to": "XMP_3686", "width": 1}, {"arrows": "to", "from": "XMP_4148", "to": "XMP_3119", "width": 1}, {"arrows": "to", "from": "XMP_4148", "to": "XMP_4194", "width": 1}, {"arrows": "to", "from": "XMP_3127", "to": "XMP_4154", "width": 1}, {"arrows": "to", "from": "XMP_4154", "to": "XMP_4165", "width": 1}, {"arrows": "to", "from": "XMP_4160", "to": "XMP_4165", "width": 1}, {"arrows": "to", "from": "XMP_4165", "to": "XMP_4168", "width": 1}, {"arrows": "to", "from": "XMP_4165", "to": "XMP_4197", "width": 1}, {"arrows": "to", "from": "XMP_4168", "to": "XMP_3097", "width": 1}, {"arrows": "to", "from": "XMP_4168", "to": "XMP_4178", "width": 1}, {"arrows": "to", "from": "XMP_4168", "to": "XMP_4197", "width": 1}, {"arrows": "to", "from": "XMP_4173", "to": "XMP_4178", "width": 1}, {"arrows": "to", "from": "XMP_4178", "to": "XMP_4181", "width": 1}, {"arrows": "to", "from": "XMP_4178", "to": "XMP_4201", "width": 1}, {"arrows": "to", "from": "XMP_3131", "to": "XMP_4181", "width": 1}, {"arrows": "to", "from": "XMP_4181", "to": "XMP_4191", "width": 1}, {"arrows": "to", "from": "XMP_4181", "to": "XMP_4201", "width": 1}, {"arrows": "to", "from": "XMP_4186", "to": "XMP_4191", "width": 1}, {"arrows": "to", "from": "XMP_4191", "to": "XMP_4194", "width": 1}, {"arrows": "to", "from": "XMP_4191", "to": "XMP_4654", "width": 1}, {"arrows": "to", "from": "XMP_3114", "to": "XMP_4194", "width": 1}, {"arrows": "to", "from": "XMP_4194", "to": "XMP_4654", "width": 1}, {"arrows": "to", "from": "XMP_4197", "to": "XMP_3135", "width": 1}, {"arrows": "to", "from": "XMP_4197", "to": "XMP_3143", "width": 1}, {"arrows": "to", "from": "XMP_4201", "to": "XMP_3139", "width": 1}, {"arrows": "to", "from": "XMP_4201", "to": "XMP_3146", "width": 1}, {"arrows": "to", "from": "XMP_4654", "to": "XMP_3718", "width": 1}, {"arrows": "to", "from": "XMP_4654", "to": "XMP_3722", "width": 1}, {"arrows": "to", "from": "XMP_4269", "to": "XMP_2860", "width": 1}, {"arrows": "to", "from": "XMP_4293", "to": "XMP_4297", "width": 1}, {"arrows": "to", "from": "XMP_4438", "to": "XMP_3458", "width": 1}, {"arrows": "to", "from": "XMP_4438", "to": "XMP_3537", "width": 1}, {"arrows": "to", "from": "XMP_4527", "to": "XMP_4532", "width": 1}, {"arrows": "to", "from": "XMP_4532", "to": "XMP_4535", "width": 1}, {"arrows": "to", "from": "XMP_4532", "to": "XMP_4581", "width": 1}, {"arrows": "to", "from": "XMP_4535", "to": "XMP_4581", "width": 1}, {"arrows": "to", "from": "XMP_4581", "to": "XMP_3630", "width": 1}, {"arrows": "to", "from": "XMP_4581", "to": "XMP_4599", "width": 1}, {"arrows": "to", "from": "XMP_4585", "to": "XMP_3634", "width": 1}, {"arrows": "to", "from": "XMP_4585", "to": "XMP_3639", "width": 1}, {"arrows": "to", "from": "XMP_4328", "to": "XMP_2889", "width": 1}, {"arrows": "to", "from": "XMP_4328", "to": "XMP_2893", "width": 1}, {"arrows": "to", "from": "XMP_4342", "to": "XMP_3257", "width": 1}, {"arrows": "to", "from": "XMP_4342", "to": "XMP_4490", "width": 1}, {"arrows": "to", "from": "XMP_4360", "to": "XMP_3269", "width": 1}, {"arrows": "to", "from": "XMP_4360", "to": "XMP_3320", "width": 1}, {"arrows": "to", "from": "XMP_4360", "to": "XMP_4490", "width": 1}, {"arrows": "to", "from": "XMP_4360", "to": "XMP_4493", "width": 1}, {"arrows": "to", "from": "XMP_4485", "to": "XMP_4490", "width": 1}, {"arrows": "to", "from": "XMP_4490", "to": "XMP_4493", "width": 1}, {"arrows": "to", "from": "XMP_4493", "to": "XMP_3561", "width": 1}, {"arrows": "to", "from": "XMP_4493", "to": "XMP_4372", "width": 1}, {"arrows": "to", "from": "XMP_4348", "to": "XMP_3261", "width": 1}, {"arrows": "to", "from": "XMP_4348", "to": "XMP_4504", "width": 1}, {"arrows": "to", "from": "XMP_4364", "to": "XMP_3273", "width": 1}, {"arrows": "to", "from": "XMP_4364", "to": "XMP_3323", "width": 1}, {"arrows": "to", "from": "XMP_4364", "to": "XMP_4504", "width": 1}, {"arrows": "to", "from": "XMP_4364", "to": "XMP_4507", "width": 1}, {"arrows": "to", "from": "XMP_4499", "to": "XMP_4504", "width": 1}, {"arrows": "to", "from": "XMP_4504", "to": "XMP_4507", "width": 1}, {"arrows": "to", "from": "XMP_3567", "to": "XMP_4507", "width": 1}, {"arrows": "to", "from": "XMP_4507", "to": "XMP_3285", "width": 1}, {"arrows": "to", "from": "XMP_4354", "to": "XMP_3265", "width": 1}, {"arrows": "to", "from": "XMP_4354", "to": "XMP_4518", "width": 1}, {"arrows": "to", "from": "XMP_4368", "to": "XMP_3277", "width": 1}, {"arrows": "to", "from": "XMP_4368", "to": "XMP_3311", "width": 1}, {"arrows": "to", "from": "XMP_4368", "to": "XMP_4518", "width": 1}, {"arrows": "to", "from": "XMP_4368", "to": "XMP_4521", "width": 1}, {"arrows": "to", "from": "XMP_4513", "to": "XMP_4518", "width": 1}, {"arrows": "to", "from": "XMP_4518", "to": "XMP_4521", "width": 1}, {"arrows": "to", "from": "XMP_4521", "to": "XMP_3573", "width": 1}, {"arrows": "to", "from": "XMP_4521", "to": "XMP_4384", "width": 1}, {"arrows": "to", "from": "XMP_4372", "to": "XMP_3281", "width": 1}, {"arrows": "to", "from": "XMP_4384", "to": "XMP_3289", "width": 1}, {"arrows": "to", "from": "XMP_3614", "to": "XMP_4554", "width": 1}, {"arrows": "to", "from": "XMP_4554", "to": "XMP_4567", "width": 1}, {"arrows": "to", "from": "XMP_4562", "to": "XMP_4567", "width": 1}, {"arrows": "to", "from": "XMP_4567", "to": "XMP_4570", "width": 1}, {"arrows": "to", "from": "XMP_4567", "to": "XMP_4573", "width": 1}, {"arrows": "to", "from": "XMP_3618", "to": "XMP_4570", "width": 1}, {"arrows": "to", "from": "XMP_4570", "to": "XMP_4573", "width": 1}, {"arrows": "to", "from": "XMP_4570", "to": "XMP_4596", "width": 1}, {"arrows": "to", "from": "XMP_4573", "to": "XMP_3622", "width": 1}, {"arrows": "to", "from": "XMP_4573", "to": "XMP_3647", "width": 1}, {"arrows": "to", "from": "XMP_4577", "to": "XMP_3626", "width": 1}, {"arrows": "to", "from": "XMP_4577", "to": "XMP_3644", "width": 1}, {"arrows": "to", "from": "XMP_4577", "to": "XMP_4596", "width": 1}, {"arrows": "to", "from": "XMP_4577", "to": "XMP_4599", "width": 1}, {"arrows": "to", "from": "XMP_4591", "to": "XMP_4596", "width": 1}, {"arrows": "to", "from": "XMP_4596", "to": "XMP_4599", "width": 1}, {"arrows": "to", "from": "XMP_3662", "to": "XMP_4602", "width": 1}, {"arrows": "to", "from": "XMP_4602", "to": "XMP_3348", "width": 1}, {"arrows": "to", "from": "XMP_4602", "to": "XMP_4608", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
