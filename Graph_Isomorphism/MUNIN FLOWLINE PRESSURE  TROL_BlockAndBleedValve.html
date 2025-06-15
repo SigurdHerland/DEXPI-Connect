@@ -1,0 +1,478 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1000px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="PipingComponent">PipingComponent</option>
+                                
+                                    <option value="Presentation_1">Presentation_1</option>
+                                
+                                    <option value="Extent_1">Extent_1</option>
+                                
+                                    <option value="Position_1">Position_1</option>
+                                
+                                    <option value="Scale_1">Scale_1</option>
+                                
+                                    <option value="PersistentID_1">PersistentID_1</option>
+                                
+                                    <option value="ConnectionPoints_1">ConnectionPoints_1</option>
+                                
+                                    <option value="Min_1">Min_1</option>
+                                
+                                    <option value="Max_1">Max_1</option>
+                                
+                                    <option value="Location_1">Location_1</option>
+                                
+                                    <option value="Axis_1">Axis_1</option>
+                                
+                                    <option value="Reference_1">Reference_1</option>
+                                
+                                    <option value="Extent_2">Extent_2</option>
+                                
+                                    <option value="Node_1">Node_1</option>
+                                
+                                    <option value="Node_2">Node_2</option>
+                                
+                                    <option value="Node_3">Node_3</option>
+                                
+                                    <option value="Node_4">Node_4</option>
+                                
+                                    <option value="Min_2">Min_2</option>
+                                
+                                    <option value="Max_2">Max_2</option>
+                                
+                                    <option value="Position_2">Position_2</option>
+                                
+                                    <option value="Location_2">Location_2</option>
+                                
+                                    <option value="Axis_2">Axis_2</option>
+                                
+                                    <option value="Reference_2">Reference_2</option>
+                                
+                                    <option value="Position_3">Position_3</option>
+                                
+                                    <option value="Location_3">Location_3</option>
+                                
+                                    <option value="Axis_3">Axis_3</option>
+                                
+                                    <option value="Reference_3">Reference_3</option>
+                                
+                                    <option value="Position_4">Position_4</option>
+                                
+                                    <option value="Location_4">Location_4</option>
+                                
+                                    <option value="Axis_4">Axis_4</option>
+                                
+                                    <option value="Reference_4">Reference_4</option>
+                                
+                                    <option value="Position_5">Position_5</option>
+                                
+                                    <option value="Location_5">Location_5</option>
+                                
+                                    <option value="Axis_5">Axis_5</option>
+                                
+                                    <option value="Reference_5">Reference_5</option>
+                                
+                                    <option value="XMP_11456">XMP_11456</option>
+                                
+                                    <option value="Presentation">Presentation</option>
+                                
+                                    <option value="Extent">Extent</option>
+                                
+                                    <option value="Min">Min</option>
+                                
+                                    <option value="Max">Max</option>
+                                
+                                    <option value="Position">Position</option>
+                                
+                                    <option value="Location">Location</option>
+                                
+                                    <option value="Axis">Axis</option>
+                                
+                                    <option value="Reference">Reference</option>
+                                
+                                    <option value="Scale">Scale</option>
+                                
+                                    <option value="PersistentID">PersistentID</option>
+                                
+                                    <option value="ConnectionPoints">ConnectionPoints</option>
+                                
+                                    <option value="Node">Node</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent", "label": "PipingComponent", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_1", "label": "Presentation_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_1", "label": "Extent_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_1", "label": "Position_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_1", "label": "Scale_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_1", "label": "PersistentID_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_1", "label": "ConnectionPoints_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_1", "label": "Min_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_1", "label": "Max_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_1", "label": "Location_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_1", "label": "Axis_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_1", "label": "Reference_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_2", "label": "Extent_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_1", "label": "Node_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_2", "label": "Node_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_3", "label": "Node_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_4", "label": "Node_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_2", "label": "Min_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_2", "label": "Max_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_2", "label": "Position_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_2", "label": "Location_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_2", "label": "Axis_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_2", "label": "Reference_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_3", "label": "Position_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_3", "label": "Location_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_3", "label": "Axis_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_3", "label": "Reference_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_4", "label": "Position_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_4", "label": "Location_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_4", "label": "Axis_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_4", "label": "Reference_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_5", "label": "Position_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_5", "label": "Location_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_5", "label": "Axis_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_5", "label": "Reference_5", "shape": "dot", "size": 10}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_11456", "label": "XMP_11456", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation", "label": "Presentation", "shape": "dot", "size": 14}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent", "label": "Extent", "shape": "dot", "size": 0}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min", "label": "Min", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max", "label": "Max", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position", "label": "Position", "shape": "dot", "size": 0}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location", "label": "Location", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis", "label": "Axis", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference", "label": "Reference", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale", "label": "Scale", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID", "label": "PersistentID", "shape": "dot", "size": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints", "label": "ConnectionPoints", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node", "label": "Node", "shape": "dot", "size": 6}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "PipingComponent", "to": "Presentation_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "Extent_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "Position_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "Scale_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "PersistentID_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "ConnectionPoints_1", "width": 1}, {"arrows": "to", "from": "Extent_1", "to": "Min_1", "width": 1}, {"arrows": "to", "from": "Extent_1", "to": "Max_1", "width": 1}, {"arrows": "to", "from": "Position_1", "to": "Location_1", "width": 1}, {"arrows": "to", "from": "Position_1", "to": "Axis_1", "width": 1}, {"arrows": "to", "from": "Position_1", "to": "Reference_1", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Extent_2", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Node_1", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Node_2", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Node_3", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Node_4", "width": 1}, {"arrows": "to", "from": "Extent_2", "to": "Min_2", "width": 1}, {"arrows": "to", "from": "Extent_2", "to": "Max_2", "width": 1}, {"arrows": "to", "from": "Node_1", "to": "Position_2", "width": 1}, {"arrows": "to", "from": "Position_2", "to": "Location_2", "width": 1}, {"arrows": "to", "from": "Position_2", "to": "Axis_2", "width": 1}, {"arrows": "to", "from": "Position_2", "to": "Reference_2", "width": 1}, {"arrows": "to", "from": "Node_2", "to": "Position_3", "width": 1}, {"arrows": "to", "from": "Position_3", "to": "Location_3", "width": 1}, {"arrows": "to", "from": "Position_3", "to": "Axis_3", "width": 1}, {"arrows": "to", "from": "Position_3", "to": "Reference_3", "width": 1}, {"arrows": "to", "from": "Node_3", "to": "Position_4", "width": 1}, {"arrows": "to", "from": "Position_4", "to": "Location_4", "width": 1}, {"arrows": "to", "from": "Position_4", "to": "Axis_4", "width": 1}, {"arrows": "to", "from": "Position_4", "to": "Reference_4", "width": 1}, {"arrows": "to", "from": "Node_4", "to": "Position_5", "width": 1}, {"arrows": "to", "from": "Position_5", "to": "Location_5", "width": 1}, {"arrows": "to", "from": "Position_5", "to": "Axis_5", "width": 1}, {"arrows": "to", "from": "Position_5", "to": "Reference_5", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

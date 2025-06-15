@@ -1,0 +1,1613 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1000px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 1000px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="PipingComponent">PipingComponent</option>
+                                
+                                    <option value="Presentation_1">Presentation_1</option>
+                                
+                                    <option value="Extent_1">Extent_1</option>
+                                
+                                    <option value="Position_1">Position_1</option>
+                                
+                                    <option value="ConnectionPoints_1">ConnectionPoints_1</option>
+                                
+                                    <option value="Min_1">Min_1</option>
+                                
+                                    <option value="Max_1">Max_1</option>
+                                
+                                    <option value="Location_1">Location_1</option>
+                                
+                                    <option value="Axis_1">Axis_1</option>
+                                
+                                    <option value="Reference_1">Reference_1</option>
+                                
+                                    <option value="Extent_2">Extent_2</option>
+                                
+                                    <option value="Node_1">Node_1</option>
+                                
+                                    <option value="Node_2">Node_2</option>
+                                
+                                    <option value="Node_3">Node_3</option>
+                                
+                                    <option value="Min_2">Min_2</option>
+                                
+                                    <option value="Max_2">Max_2</option>
+                                
+                                    <option value="Position_2">Position_2</option>
+                                
+                                    <option value="Location_2">Location_2</option>
+                                
+                                    <option value="Axis_2">Axis_2</option>
+                                
+                                    <option value="Reference_2">Reference_2</option>
+                                
+                                    <option value="Position_3">Position_3</option>
+                                
+                                    <option value="Location_3">Location_3</option>
+                                
+                                    <option value="Axis_3">Axis_3</option>
+                                
+                                    <option value="Reference_3">Reference_3</option>
+                                
+                                    <option value="Position_4">Position_4</option>
+                                
+                                    <option value="Location_4">Location_4</option>
+                                
+                                    <option value="Axis_4">Axis_4</option>
+                                
+                                    <option value="Reference_4">Reference_4</option>
+                                
+                                    <option value="PipingComponent_1">PipingComponent_1</option>
+                                
+                                    <option value="Presentation_2">Presentation_2</option>
+                                
+                                    <option value="Extent_3">Extent_3</option>
+                                
+                                    <option value="Position_5">Position_5</option>
+                                
+                                    <option value="Scale_1">Scale_1</option>
+                                
+                                    <option value="PersistentID_1">PersistentID_1</option>
+                                
+                                    <option value="ConnectionPoints_2">ConnectionPoints_2</option>
+                                
+                                    <option value="Min_3">Min_3</option>
+                                
+                                    <option value="Max_3">Max_3</option>
+                                
+                                    <option value="Location_5">Location_5</option>
+                                
+                                    <option value="Axis_5">Axis_5</option>
+                                
+                                    <option value="Reference_5">Reference_5</option>
+                                
+                                    <option value="Extent_4">Extent_4</option>
+                                
+                                    <option value="Node_4">Node_4</option>
+                                
+                                    <option value="Node_5">Node_5</option>
+                                
+                                    <option value="Node_6">Node_6</option>
+                                
+                                    <option value="Min_4">Min_4</option>
+                                
+                                    <option value="Max_4">Max_4</option>
+                                
+                                    <option value="Position_6">Position_6</option>
+                                
+                                    <option value="Location_6">Location_6</option>
+                                
+                                    <option value="Axis_6">Axis_6</option>
+                                
+                                    <option value="Reference_6">Reference_6</option>
+                                
+                                    <option value="Position_7">Position_7</option>
+                                
+                                    <option value="Location_7">Location_7</option>
+                                
+                                    <option value="Axis_7">Axis_7</option>
+                                
+                                    <option value="Reference_7">Reference_7</option>
+                                
+                                    <option value="Position_8">Position_8</option>
+                                
+                                    <option value="Location_8">Location_8</option>
+                                
+                                    <option value="Axis_8">Axis_8</option>
+                                
+                                    <option value="Reference_8">Reference_8</option>
+                                
+                                    <option value="PipingComponent_2">PipingComponent_2</option>
+                                
+                                    <option value="Presentation_3">Presentation_3</option>
+                                
+                                    <option value="Extent_5">Extent_5</option>
+                                
+                                    <option value="Position_9">Position_9</option>
+                                
+                                    <option value="Scale_2">Scale_2</option>
+                                
+                                    <option value="PersistentID_2">PersistentID_2</option>
+                                
+                                    <option value="ConnectionPoints_3">ConnectionPoints_3</option>
+                                
+                                    <option value="Min_5">Min_5</option>
+                                
+                                    <option value="Max_5">Max_5</option>
+                                
+                                    <option value="Location_9">Location_9</option>
+                                
+                                    <option value="Axis_9">Axis_9</option>
+                                
+                                    <option value="Reference_9">Reference_9</option>
+                                
+                                    <option value="Extent_6">Extent_6</option>
+                                
+                                    <option value="Node_7">Node_7</option>
+                                
+                                    <option value="Node_8">Node_8</option>
+                                
+                                    <option value="Node_9">Node_9</option>
+                                
+                                    <option value="Min_6">Min_6</option>
+                                
+                                    <option value="Max_6">Max_6</option>
+                                
+                                    <option value="Position_10">Position_10</option>
+                                
+                                    <option value="Location_10">Location_10</option>
+                                
+                                    <option value="Axis_10">Axis_10</option>
+                                
+                                    <option value="Reference_10">Reference_10</option>
+                                
+                                    <option value="Position_11">Position_11</option>
+                                
+                                    <option value="Location_11">Location_11</option>
+                                
+                                    <option value="Axis_11">Axis_11</option>
+                                
+                                    <option value="Reference_11">Reference_11</option>
+                                
+                                    <option value="Position_12">Position_12</option>
+                                
+                                    <option value="Location_12">Location_12</option>
+                                
+                                    <option value="Axis_12">Axis_12</option>
+                                
+                                    <option value="Reference_12">Reference_12</option>
+                                
+                                    <option value="PipingComponent_3">PipingComponent_3</option>
+                                
+                                    <option value="Presentation_4">Presentation_4</option>
+                                
+                                    <option value="Extent_7">Extent_7</option>
+                                
+                                    <option value="Position_13">Position_13</option>
+                                
+                                    <option value="Scale_3">Scale_3</option>
+                                
+                                    <option value="PersistentID_3">PersistentID_3</option>
+                                
+                                    <option value="ConnectionPoints_4">ConnectionPoints_4</option>
+                                
+                                    <option value="Min_7">Min_7</option>
+                                
+                                    <option value="Max_7">Max_7</option>
+                                
+                                    <option value="Location_13">Location_13</option>
+                                
+                                    <option value="Axis_13">Axis_13</option>
+                                
+                                    <option value="Reference_13">Reference_13</option>
+                                
+                                    <option value="Extent_8">Extent_8</option>
+                                
+                                    <option value="Node_10">Node_10</option>
+                                
+                                    <option value="Node_11">Node_11</option>
+                                
+                                    <option value="Node_12">Node_12</option>
+                                
+                                    <option value="Min_8">Min_8</option>
+                                
+                                    <option value="Max_8">Max_8</option>
+                                
+                                    <option value="Position_14">Position_14</option>
+                                
+                                    <option value="Location_14">Location_14</option>
+                                
+                                    <option value="Axis_14">Axis_14</option>
+                                
+                                    <option value="Reference_14">Reference_14</option>
+                                
+                                    <option value="Position_15">Position_15</option>
+                                
+                                    <option value="Location_15">Location_15</option>
+                                
+                                    <option value="Axis_15">Axis_15</option>
+                                
+                                    <option value="Reference_15">Reference_15</option>
+                                
+                                    <option value="Position_16">Position_16</option>
+                                
+                                    <option value="Location_16">Location_16</option>
+                                
+                                    <option value="Axis_16">Axis_16</option>
+                                
+                                    <option value="Reference_16">Reference_16</option>
+                                
+                                    <option value="PipingComponent_4">PipingComponent_4</option>
+                                
+                                    <option value="Presentation_5">Presentation_5</option>
+                                
+                                    <option value="Extent_9">Extent_9</option>
+                                
+                                    <option value="Position_17">Position_17</option>
+                                
+                                    <option value="Scale_4">Scale_4</option>
+                                
+                                    <option value="PersistentID_4">PersistentID_4</option>
+                                
+                                    <option value="ConnectionPoints_5">ConnectionPoints_5</option>
+                                
+                                    <option value="Min_9">Min_9</option>
+                                
+                                    <option value="Max_9">Max_9</option>
+                                
+                                    <option value="Location_17">Location_17</option>
+                                
+                                    <option value="Axis_17">Axis_17</option>
+                                
+                                    <option value="Reference_17">Reference_17</option>
+                                
+                                    <option value="Extent_10">Extent_10</option>
+                                
+                                    <option value="Node_13">Node_13</option>
+                                
+                                    <option value="Node_14">Node_14</option>
+                                
+                                    <option value="Node_15">Node_15</option>
+                                
+                                    <option value="Min_10">Min_10</option>
+                                
+                                    <option value="Max_10">Max_10</option>
+                                
+                                    <option value="Position_18">Position_18</option>
+                                
+                                    <option value="Location_18">Location_18</option>
+                                
+                                    <option value="Axis_18">Axis_18</option>
+                                
+                                    <option value="Reference_18">Reference_18</option>
+                                
+                                    <option value="Position_19">Position_19</option>
+                                
+                                    <option value="Location_19">Location_19</option>
+                                
+                                    <option value="Axis_19">Axis_19</option>
+                                
+                                    <option value="Reference_19">Reference_19</option>
+                                
+                                    <option value="Position_20">Position_20</option>
+                                
+                                    <option value="Location_20">Location_20</option>
+                                
+                                    <option value="Axis_20">Axis_20</option>
+                                
+                                    <option value="Reference_20">Reference_20</option>
+                                
+                                    <option value="PipingComponent_5">PipingComponent_5</option>
+                                
+                                    <option value="Presentation_6">Presentation_6</option>
+                                
+                                    <option value="Extent_11">Extent_11</option>
+                                
+                                    <option value="Position_21">Position_21</option>
+                                
+                                    <option value="Scale_5">Scale_5</option>
+                                
+                                    <option value="PersistentID_5">PersistentID_5</option>
+                                
+                                    <option value="ConnectionPoints_6">ConnectionPoints_6</option>
+                                
+                                    <option value="Min_11">Min_11</option>
+                                
+                                    <option value="Max_11">Max_11</option>
+                                
+                                    <option value="Location_21">Location_21</option>
+                                
+                                    <option value="Axis_21">Axis_21</option>
+                                
+                                    <option value="Reference_21">Reference_21</option>
+                                
+                                    <option value="Extent_12">Extent_12</option>
+                                
+                                    <option value="Node_16">Node_16</option>
+                                
+                                    <option value="Node_17">Node_17</option>
+                                
+                                    <option value="Node_18">Node_18</option>
+                                
+                                    <option value="Min_12">Min_12</option>
+                                
+                                    <option value="Max_12">Max_12</option>
+                                
+                                    <option value="Position_22">Position_22</option>
+                                
+                                    <option value="Location_22">Location_22</option>
+                                
+                                    <option value="Axis_22">Axis_22</option>
+                                
+                                    <option value="Reference_22">Reference_22</option>
+                                
+                                    <option value="Position_23">Position_23</option>
+                                
+                                    <option value="Location_23">Location_23</option>
+                                
+                                    <option value="Axis_23">Axis_23</option>
+                                
+                                    <option value="Reference_23">Reference_23</option>
+                                
+                                    <option value="Position_24">Position_24</option>
+                                
+                                    <option value="Location_24">Location_24</option>
+                                
+                                    <option value="Axis_24">Axis_24</option>
+                                
+                                    <option value="Reference_24">Reference_24</option>
+                                
+                                    <option value="PipingComponent_6">PipingComponent_6</option>
+                                
+                                    <option value="Presentation_7">Presentation_7</option>
+                                
+                                    <option value="Extent_13">Extent_13</option>
+                                
+                                    <option value="Position_25">Position_25</option>
+                                
+                                    <option value="Scale_6">Scale_6</option>
+                                
+                                    <option value="PersistentID_6">PersistentID_6</option>
+                                
+                                    <option value="ConnectionPoints_7">ConnectionPoints_7</option>
+                                
+                                    <option value="Min_13">Min_13</option>
+                                
+                                    <option value="Max_13">Max_13</option>
+                                
+                                    <option value="Location_25">Location_25</option>
+                                
+                                    <option value="Axis_25">Axis_25</option>
+                                
+                                    <option value="Reference_25">Reference_25</option>
+                                
+                                    <option value="Extent_14">Extent_14</option>
+                                
+                                    <option value="Node_19">Node_19</option>
+                                
+                                    <option value="Node_20">Node_20</option>
+                                
+                                    <option value="Node_21">Node_21</option>
+                                
+                                    <option value="Min_14">Min_14</option>
+                                
+                                    <option value="Max_14">Max_14</option>
+                                
+                                    <option value="Position_26">Position_26</option>
+                                
+                                    <option value="Location_26">Location_26</option>
+                                
+                                    <option value="Axis_26">Axis_26</option>
+                                
+                                    <option value="Reference_26">Reference_26</option>
+                                
+                                    <option value="Position_27">Position_27</option>
+                                
+                                    <option value="Location_27">Location_27</option>
+                                
+                                    <option value="Axis_27">Axis_27</option>
+                                
+                                    <option value="Reference_27">Reference_27</option>
+                                
+                                    <option value="Position_28">Position_28</option>
+                                
+                                    <option value="Location_28">Location_28</option>
+                                
+                                    <option value="Axis_28">Axis_28</option>
+                                
+                                    <option value="Reference_28">Reference_28</option>
+                                
+                                    <option value="PipingComponent_7">PipingComponent_7</option>
+                                
+                                    <option value="Presentation_8">Presentation_8</option>
+                                
+                                    <option value="Extent_15">Extent_15</option>
+                                
+                                    <option value="Position_29">Position_29</option>
+                                
+                                    <option value="Scale_7">Scale_7</option>
+                                
+                                    <option value="PersistentID_7">PersistentID_7</option>
+                                
+                                    <option value="ConnectionPoints_8">ConnectionPoints_8</option>
+                                
+                                    <option value="Min_15">Min_15</option>
+                                
+                                    <option value="Max_15">Max_15</option>
+                                
+                                    <option value="Location_29">Location_29</option>
+                                
+                                    <option value="Axis_29">Axis_29</option>
+                                
+                                    <option value="Reference_29">Reference_29</option>
+                                
+                                    <option value="Extent_16">Extent_16</option>
+                                
+                                    <option value="Node_22">Node_22</option>
+                                
+                                    <option value="Node_23">Node_23</option>
+                                
+                                    <option value="Node_24">Node_24</option>
+                                
+                                    <option value="Min_16">Min_16</option>
+                                
+                                    <option value="Max_16">Max_16</option>
+                                
+                                    <option value="Position_30">Position_30</option>
+                                
+                                    <option value="Location_30">Location_30</option>
+                                
+                                    <option value="Axis_30">Axis_30</option>
+                                
+                                    <option value="Reference_30">Reference_30</option>
+                                
+                                    <option value="Position_31">Position_31</option>
+                                
+                                    <option value="Location_31">Location_31</option>
+                                
+                                    <option value="Axis_31">Axis_31</option>
+                                
+                                    <option value="Reference_31">Reference_31</option>
+                                
+                                    <option value="Position_32">Position_32</option>
+                                
+                                    <option value="Location_32">Location_32</option>
+                                
+                                    <option value="Axis_32">Axis_32</option>
+                                
+                                    <option value="Reference_32">Reference_32</option>
+                                
+                                    <option value="PipingComponent_8">PipingComponent_8</option>
+                                
+                                    <option value="Presentation_9">Presentation_9</option>
+                                
+                                    <option value="Extent_17">Extent_17</option>
+                                
+                                    <option value="Position_33">Position_33</option>
+                                
+                                    <option value="Scale_8">Scale_8</option>
+                                
+                                    <option value="PersistentID_8">PersistentID_8</option>
+                                
+                                    <option value="ConnectionPoints_9">ConnectionPoints_9</option>
+                                
+                                    <option value="Min_17">Min_17</option>
+                                
+                                    <option value="Max_17">Max_17</option>
+                                
+                                    <option value="Location_33">Location_33</option>
+                                
+                                    <option value="Axis_33">Axis_33</option>
+                                
+                                    <option value="Reference_33">Reference_33</option>
+                                
+                                    <option value="Extent_18">Extent_18</option>
+                                
+                                    <option value="Node_25">Node_25</option>
+                                
+                                    <option value="Node_26">Node_26</option>
+                                
+                                    <option value="Node_27">Node_27</option>
+                                
+                                    <option value="Min_18">Min_18</option>
+                                
+                                    <option value="Max_18">Max_18</option>
+                                
+                                    <option value="Position_34">Position_34</option>
+                                
+                                    <option value="Location_34">Location_34</option>
+                                
+                                    <option value="Axis_34">Axis_34</option>
+                                
+                                    <option value="Reference_34">Reference_34</option>
+                                
+                                    <option value="Position_35">Position_35</option>
+                                
+                                    <option value="Location_35">Location_35</option>
+                                
+                                    <option value="Axis_35">Axis_35</option>
+                                
+                                    <option value="Reference_35">Reference_35</option>
+                                
+                                    <option value="Position_36">Position_36</option>
+                                
+                                    <option value="Location_36">Location_36</option>
+                                
+                                    <option value="Axis_36">Axis_36</option>
+                                
+                                    <option value="Reference_36">Reference_36</option>
+                                
+                                    <option value="PipingComponent_9">PipingComponent_9</option>
+                                
+                                    <option value="Presentation_10">Presentation_10</option>
+                                
+                                    <option value="Extent_19">Extent_19</option>
+                                
+                                    <option value="Position_37">Position_37</option>
+                                
+                                    <option value="Scale_9">Scale_9</option>
+                                
+                                    <option value="PersistentID_9">PersistentID_9</option>
+                                
+                                    <option value="ConnectionPoints_10">ConnectionPoints_10</option>
+                                
+                                    <option value="Min_19">Min_19</option>
+                                
+                                    <option value="Max_19">Max_19</option>
+                                
+                                    <option value="Location_37">Location_37</option>
+                                
+                                    <option value="Axis_37">Axis_37</option>
+                                
+                                    <option value="Reference_37">Reference_37</option>
+                                
+                                    <option value="Extent_20">Extent_20</option>
+                                
+                                    <option value="Node_28">Node_28</option>
+                                
+                                    <option value="Node_29">Node_29</option>
+                                
+                                    <option value="Node_30">Node_30</option>
+                                
+                                    <option value="Min_20">Min_20</option>
+                                
+                                    <option value="Max_20">Max_20</option>
+                                
+                                    <option value="Position_38">Position_38</option>
+                                
+                                    <option value="Location_38">Location_38</option>
+                                
+                                    <option value="Axis_38">Axis_38</option>
+                                
+                                    <option value="Reference_38">Reference_38</option>
+                                
+                                    <option value="Position_39">Position_39</option>
+                                
+                                    <option value="Location_39">Location_39</option>
+                                
+                                    <option value="Axis_39">Axis_39</option>
+                                
+                                    <option value="Reference_39">Reference_39</option>
+                                
+                                    <option value="Position_40">Position_40</option>
+                                
+                                    <option value="Location_40">Location_40</option>
+                                
+                                    <option value="Axis_40">Axis_40</option>
+                                
+                                    <option value="Reference_40">Reference_40</option>
+                                
+                                    <option value="PipingComponent_10">PipingComponent_10</option>
+                                
+                                    <option value="Presentation_11">Presentation_11</option>
+                                
+                                    <option value="Extent_21">Extent_21</option>
+                                
+                                    <option value="Position_41">Position_41</option>
+                                
+                                    <option value="Scale_10">Scale_10</option>
+                                
+                                    <option value="PersistentID_10">PersistentID_10</option>
+                                
+                                    <option value="ConnectionPoints_11">ConnectionPoints_11</option>
+                                
+                                    <option value="Min_21">Min_21</option>
+                                
+                                    <option value="Max_21">Max_21</option>
+                                
+                                    <option value="Location_41">Location_41</option>
+                                
+                                    <option value="Axis_41">Axis_41</option>
+                                
+                                    <option value="Reference_41">Reference_41</option>
+                                
+                                    <option value="Extent_22">Extent_22</option>
+                                
+                                    <option value="Node_31">Node_31</option>
+                                
+                                    <option value="Node_32">Node_32</option>
+                                
+                                    <option value="Node_33">Node_33</option>
+                                
+                                    <option value="Min_22">Min_22</option>
+                                
+                                    <option value="Max_22">Max_22</option>
+                                
+                                    <option value="Position_42">Position_42</option>
+                                
+                                    <option value="Location_42">Location_42</option>
+                                
+                                    <option value="Axis_42">Axis_42</option>
+                                
+                                    <option value="Reference_42">Reference_42</option>
+                                
+                                    <option value="Position_43">Position_43</option>
+                                
+                                    <option value="Location_43">Location_43</option>
+                                
+                                    <option value="Axis_43">Axis_43</option>
+                                
+                                    <option value="Reference_43">Reference_43</option>
+                                
+                                    <option value="Position_44">Position_44</option>
+                                
+                                    <option value="Location_44">Location_44</option>
+                                
+                                    <option value="Axis_44">Axis_44</option>
+                                
+                                    <option value="Reference_44">Reference_44</option>
+                                
+                                    <option value="PipingComponent_11">PipingComponent_11</option>
+                                
+                                    <option value="Presentation_12">Presentation_12</option>
+                                
+                                    <option value="Extent_23">Extent_23</option>
+                                
+                                    <option value="Position_45">Position_45</option>
+                                
+                                    <option value="Scale_11">Scale_11</option>
+                                
+                                    <option value="PersistentID_11">PersistentID_11</option>
+                                
+                                    <option value="ConnectionPoints_12">ConnectionPoints_12</option>
+                                
+                                    <option value="Min_23">Min_23</option>
+                                
+                                    <option value="Max_23">Max_23</option>
+                                
+                                    <option value="Location_45">Location_45</option>
+                                
+                                    <option value="Axis_45">Axis_45</option>
+                                
+                                    <option value="Reference_45">Reference_45</option>
+                                
+                                    <option value="Extent_24">Extent_24</option>
+                                
+                                    <option value="Node_34">Node_34</option>
+                                
+                                    <option value="Node_35">Node_35</option>
+                                
+                                    <option value="Node_36">Node_36</option>
+                                
+                                    <option value="Min_24">Min_24</option>
+                                
+                                    <option value="Max_24">Max_24</option>
+                                
+                                    <option value="Position_46">Position_46</option>
+                                
+                                    <option value="Location_46">Location_46</option>
+                                
+                                    <option value="Axis_46">Axis_46</option>
+                                
+                                    <option value="Reference_46">Reference_46</option>
+                                
+                                    <option value="Position_47">Position_47</option>
+                                
+                                    <option value="Location_47">Location_47</option>
+                                
+                                    <option value="Axis_47">Axis_47</option>
+                                
+                                    <option value="Reference_47">Reference_47</option>
+                                
+                                    <option value="Position_48">Position_48</option>
+                                
+                                    <option value="Location_48">Location_48</option>
+                                
+                                    <option value="Axis_48">Axis_48</option>
+                                
+                                    <option value="Reference_48">Reference_48</option>
+                                
+                                    <option value="PipingComponent_12">PipingComponent_12</option>
+                                
+                                    <option value="Presentation_13">Presentation_13</option>
+                                
+                                    <option value="Extent_25">Extent_25</option>
+                                
+                                    <option value="Position_49">Position_49</option>
+                                
+                                    <option value="Scale_12">Scale_12</option>
+                                
+                                    <option value="PersistentID_12">PersistentID_12</option>
+                                
+                                    <option value="ConnectionPoints_13">ConnectionPoints_13</option>
+                                
+                                    <option value="Min_25">Min_25</option>
+                                
+                                    <option value="Max_25">Max_25</option>
+                                
+                                    <option value="Location_49">Location_49</option>
+                                
+                                    <option value="Axis_49">Axis_49</option>
+                                
+                                    <option value="Reference_49">Reference_49</option>
+                                
+                                    <option value="Extent_26">Extent_26</option>
+                                
+                                    <option value="Node_37">Node_37</option>
+                                
+                                    <option value="Node_38">Node_38</option>
+                                
+                                    <option value="Node_39">Node_39</option>
+                                
+                                    <option value="Min_26">Min_26</option>
+                                
+                                    <option value="Max_26">Max_26</option>
+                                
+                                    <option value="Position_50">Position_50</option>
+                                
+                                    <option value="Location_50">Location_50</option>
+                                
+                                    <option value="Axis_50">Axis_50</option>
+                                
+                                    <option value="Reference_50">Reference_50</option>
+                                
+                                    <option value="Position_51">Position_51</option>
+                                
+                                    <option value="Location_51">Location_51</option>
+                                
+                                    <option value="Axis_51">Axis_51</option>
+                                
+                                    <option value="Reference_51">Reference_51</option>
+                                
+                                    <option value="Position_52">Position_52</option>
+                                
+                                    <option value="Location_52">Location_52</option>
+                                
+                                    <option value="Axis_52">Axis_52</option>
+                                
+                                    <option value="Reference_52">Reference_52</option>
+                                
+                                    <option value="PipingComponent_13">PipingComponent_13</option>
+                                
+                                    <option value="Presentation_14">Presentation_14</option>
+                                
+                                    <option value="Extent_27">Extent_27</option>
+                                
+                                    <option value="Position_53">Position_53</option>
+                                
+                                    <option value="Scale_13">Scale_13</option>
+                                
+                                    <option value="PersistentID_13">PersistentID_13</option>
+                                
+                                    <option value="ConnectionPoints_14">ConnectionPoints_14</option>
+                                
+                                    <option value="Min_27">Min_27</option>
+                                
+                                    <option value="Max_27">Max_27</option>
+                                
+                                    <option value="Location_53">Location_53</option>
+                                
+                                    <option value="Axis_53">Axis_53</option>
+                                
+                                    <option value="Reference_53">Reference_53</option>
+                                
+                                    <option value="Extent_28">Extent_28</option>
+                                
+                                    <option value="Node_40">Node_40</option>
+                                
+                                    <option value="Node_41">Node_41</option>
+                                
+                                    <option value="Node_42">Node_42</option>
+                                
+                                    <option value="Min_28">Min_28</option>
+                                
+                                    <option value="Max_28">Max_28</option>
+                                
+                                    <option value="Position_54">Position_54</option>
+                                
+                                    <option value="Location_54">Location_54</option>
+                                
+                                    <option value="Axis_54">Axis_54</option>
+                                
+                                    <option value="Reference_54">Reference_54</option>
+                                
+                                    <option value="Position_55">Position_55</option>
+                                
+                                    <option value="Location_55">Location_55</option>
+                                
+                                    <option value="Axis_55">Axis_55</option>
+                                
+                                    <option value="Reference_55">Reference_55</option>
+                                
+                                    <option value="Position_56">Position_56</option>
+                                
+                                    <option value="Location_56">Location_56</option>
+                                
+                                    <option value="Axis_56">Axis_56</option>
+                                
+                                    <option value="Reference_56">Reference_56</option>
+                                
+                                    <option value="PipingComponent_14">PipingComponent_14</option>
+                                
+                                    <option value="Presentation_15">Presentation_15</option>
+                                
+                                    <option value="Extent_29">Extent_29</option>
+                                
+                                    <option value="Position_57">Position_57</option>
+                                
+                                    <option value="Scale_14">Scale_14</option>
+                                
+                                    <option value="PersistentID_14">PersistentID_14</option>
+                                
+                                    <option value="ConnectionPoints_15">ConnectionPoints_15</option>
+                                
+                                    <option value="Min_29">Min_29</option>
+                                
+                                    <option value="Max_29">Max_29</option>
+                                
+                                    <option value="Location_57">Location_57</option>
+                                
+                                    <option value="Axis_57">Axis_57</option>
+                                
+                                    <option value="Reference_57">Reference_57</option>
+                                
+                                    <option value="Extent_30">Extent_30</option>
+                                
+                                    <option value="Node_43">Node_43</option>
+                                
+                                    <option value="Node_44">Node_44</option>
+                                
+                                    <option value="Node_45">Node_45</option>
+                                
+                                    <option value="Min_30">Min_30</option>
+                                
+                                    <option value="Max_30">Max_30</option>
+                                
+                                    <option value="Position_58">Position_58</option>
+                                
+                                    <option value="Location_58">Location_58</option>
+                                
+                                    <option value="Axis_58">Axis_58</option>
+                                
+                                    <option value="Reference_58">Reference_58</option>
+                                
+                                    <option value="Position_59">Position_59</option>
+                                
+                                    <option value="Location_59">Location_59</option>
+                                
+                                    <option value="Axis_59">Axis_59</option>
+                                
+                                    <option value="Reference_59">Reference_59</option>
+                                
+                                    <option value="Position_60">Position_60</option>
+                                
+                                    <option value="Location_60">Location_60</option>
+                                
+                                    <option value="Axis_60">Axis_60</option>
+                                
+                                    <option value="Reference_60">Reference_60</option>
+                                
+                                    <option value="PipingComponent_15">PipingComponent_15</option>
+                                
+                                    <option value="Presentation_16">Presentation_16</option>
+                                
+                                    <option value="Extent_31">Extent_31</option>
+                                
+                                    <option value="Position_61">Position_61</option>
+                                
+                                    <option value="Scale_15">Scale_15</option>
+                                
+                                    <option value="PersistentID_15">PersistentID_15</option>
+                                
+                                    <option value="ConnectionPoints_16">ConnectionPoints_16</option>
+                                
+                                    <option value="Min_31">Min_31</option>
+                                
+                                    <option value="Max_31">Max_31</option>
+                                
+                                    <option value="Location_61">Location_61</option>
+                                
+                                    <option value="Axis_61">Axis_61</option>
+                                
+                                    <option value="Reference_61">Reference_61</option>
+                                
+                                    <option value="Extent_32">Extent_32</option>
+                                
+                                    <option value="Node_46">Node_46</option>
+                                
+                                    <option value="Node_47">Node_47</option>
+                                
+                                    <option value="Node_48">Node_48</option>
+                                
+                                    <option value="Min_32">Min_32</option>
+                                
+                                    <option value="Max_32">Max_32</option>
+                                
+                                    <option value="Position_62">Position_62</option>
+                                
+                                    <option value="Location_62">Location_62</option>
+                                
+                                    <option value="Axis_62">Axis_62</option>
+                                
+                                    <option value="Reference_62">Reference_62</option>
+                                
+                                    <option value="Position_63">Position_63</option>
+                                
+                                    <option value="Location_63">Location_63</option>
+                                
+                                    <option value="Axis_63">Axis_63</option>
+                                
+                                    <option value="Reference_63">Reference_63</option>
+                                
+                                    <option value="Position_64">Position_64</option>
+                                
+                                    <option value="Location_64">Location_64</option>
+                                
+                                    <option value="Axis_64">Axis_64</option>
+                                
+                                    <option value="Reference_64">Reference_64</option>
+                                
+                                    <option value="PipingComponent_16">PipingComponent_16</option>
+                                
+                                    <option value="Presentation_17">Presentation_17</option>
+                                
+                                    <option value="Extent_33">Extent_33</option>
+                                
+                                    <option value="Position_65">Position_65</option>
+                                
+                                    <option value="Scale_16">Scale_16</option>
+                                
+                                    <option value="PersistentID_16">PersistentID_16</option>
+                                
+                                    <option value="ConnectionPoints_17">ConnectionPoints_17</option>
+                                
+                                    <option value="Min_33">Min_33</option>
+                                
+                                    <option value="Max_33">Max_33</option>
+                                
+                                    <option value="Location_65">Location_65</option>
+                                
+                                    <option value="Axis_65">Axis_65</option>
+                                
+                                    <option value="Reference_65">Reference_65</option>
+                                
+                                    <option value="Extent_34">Extent_34</option>
+                                
+                                    <option value="Node_49">Node_49</option>
+                                
+                                    <option value="Node_50">Node_50</option>
+                                
+                                    <option value="Node_51">Node_51</option>
+                                
+                                    <option value="Min_34">Min_34</option>
+                                
+                                    <option value="Max_34">Max_34</option>
+                                
+                                    <option value="Position_66">Position_66</option>
+                                
+                                    <option value="Location_66">Location_66</option>
+                                
+                                    <option value="Axis_66">Axis_66</option>
+                                
+                                    <option value="Reference_66">Reference_66</option>
+                                
+                                    <option value="Position_67">Position_67</option>
+                                
+                                    <option value="Location_67">Location_67</option>
+                                
+                                    <option value="Axis_67">Axis_67</option>
+                                
+                                    <option value="Reference_67">Reference_67</option>
+                                
+                                    <option value="Position_68">Position_68</option>
+                                
+                                    <option value="Location_68">Location_68</option>
+                                
+                                    <option value="Axis_68">Axis_68</option>
+                                
+                                    <option value="Reference_68">Reference_68</option>
+                                
+                                    <option value="PipingComponent_17">PipingComponent_17</option>
+                                
+                                    <option value="Presentation_18">Presentation_18</option>
+                                
+                                    <option value="Extent_35">Extent_35</option>
+                                
+                                    <option value="Position_69">Position_69</option>
+                                
+                                    <option value="Scale_17">Scale_17</option>
+                                
+                                    <option value="PersistentID_17">PersistentID_17</option>
+                                
+                                    <option value="ConnectionPoints_18">ConnectionPoints_18</option>
+                                
+                                    <option value="Min_35">Min_35</option>
+                                
+                                    <option value="Max_35">Max_35</option>
+                                
+                                    <option value="Location_69">Location_69</option>
+                                
+                                    <option value="Axis_69">Axis_69</option>
+                                
+                                    <option value="Reference_69">Reference_69</option>
+                                
+                                    <option value="Extent_36">Extent_36</option>
+                                
+                                    <option value="Node_52">Node_52</option>
+                                
+                                    <option value="Node_53">Node_53</option>
+                                
+                                    <option value="Node_54">Node_54</option>
+                                
+                                    <option value="Min_36">Min_36</option>
+                                
+                                    <option value="Max_36">Max_36</option>
+                                
+                                    <option value="Position_70">Position_70</option>
+                                
+                                    <option value="Location_70">Location_70</option>
+                                
+                                    <option value="Axis_70">Axis_70</option>
+                                
+                                    <option value="Reference_70">Reference_70</option>
+                                
+                                    <option value="Position_71">Position_71</option>
+                                
+                                    <option value="Location_71">Location_71</option>
+                                
+                                    <option value="Axis_71">Axis_71</option>
+                                
+                                    <option value="Reference_71">Reference_71</option>
+                                
+                                    <option value="Position_72">Position_72</option>
+                                
+                                    <option value="Location_72">Location_72</option>
+                                
+                                    <option value="Axis_72">Axis_72</option>
+                                
+                                    <option value="Reference_72">Reference_72</option>
+                                
+                                    <option value="XMC_25">XMC_25</option>
+                                
+                                    <option value="Presentation">Presentation</option>
+                                
+                                    <option value="Extent">Extent</option>
+                                
+                                    <option value="Min">Min</option>
+                                
+                                    <option value="Max">Max</option>
+                                
+                                    <option value="Position">Position</option>
+                                
+                                    <option value="Location">Location</option>
+                                
+                                    <option value="Axis">Axis</option>
+                                
+                                    <option value="Reference">Reference</option>
+                                
+                                    <option value="ConnectionPoints">ConnectionPoints</option>
+                                
+                                    <option value="Node">Node</option>
+                                
+                                    <option value="XMP_52">XMP_52</option>
+                                
+                                    <option value="Scale">Scale</option>
+                                
+                                    <option value="PersistentID">PersistentID</option>
+                                
+                                    <option value="XMP_60">XMP_60</option>
+                                
+                                    <option value="XMP_64">XMP_64</option>
+                                
+                                    <option value="XMP_157">XMP_157</option>
+                                
+                                    <option value="XMP_164">XMP_164</option>
+                                
+                                    <option value="XMP_185">XMP_185</option>
+                                
+                                    <option value="XMP_276">XMP_276</option>
+                                
+                                    <option value="XMP_280">XMP_280</option>
+                                
+                                    <option value="XMP_284">XMP_284</option>
+                                
+                                    <option value="XMP_299">XMP_299</option>
+                                
+                                    <option value="XMP_303">XMP_303</option>
+                                
+                                    <option value="XMP_307">XMP_307</option>
+                                
+                                    <option value="XMP_338">XMP_338</option>
+                                
+                                    <option value="XMP_467">XMP_467</option>
+                                
+                                    <option value="XMP_482">XMP_482</option>
+                                
+                                    <option value="XMP_489">XMP_489</option>
+                                
+                                    <option value="XMP_524">XMP_524</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent", "label": "PipingComponent", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_1", "label": "Presentation_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_1", "label": "Extent_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_1", "label": "Position_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_1", "label": "ConnectionPoints_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_1", "label": "Min_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_1", "label": "Max_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_1", "label": "Location_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_1", "label": "Axis_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_1", "label": "Reference_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_2", "label": "Extent_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_1", "label": "Node_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_2", "label": "Node_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_3", "label": "Node_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_2", "label": "Min_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_2", "label": "Max_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_2", "label": "Position_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_2", "label": "Location_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_2", "label": "Axis_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_2", "label": "Reference_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_3", "label": "Position_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_3", "label": "Location_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_3", "label": "Axis_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_3", "label": "Reference_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_4", "label": "Position_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_4", "label": "Location_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_4", "label": "Axis_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_4", "label": "Reference_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_1", "label": "PipingComponent_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_2", "label": "Presentation_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_3", "label": "Extent_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_5", "label": "Position_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_1", "label": "Scale_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_1", "label": "PersistentID_1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_2", "label": "ConnectionPoints_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_3", "label": "Min_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_3", "label": "Max_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_5", "label": "Location_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_5", "label": "Axis_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_5", "label": "Reference_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_4", "label": "Extent_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_4", "label": "Node_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_5", "label": "Node_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_6", "label": "Node_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_4", "label": "Min_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_4", "label": "Max_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_6", "label": "Position_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_6", "label": "Location_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_6", "label": "Axis_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_6", "label": "Reference_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_7", "label": "Position_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_7", "label": "Location_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_7", "label": "Axis_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_7", "label": "Reference_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_8", "label": "Position_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_8", "label": "Location_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_8", "label": "Axis_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_8", "label": "Reference_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_2", "label": "PipingComponent_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_3", "label": "Presentation_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_5", "label": "Extent_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_9", "label": "Position_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_2", "label": "Scale_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_2", "label": "PersistentID_2", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_3", "label": "ConnectionPoints_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_5", "label": "Min_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_5", "label": "Max_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_9", "label": "Location_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_9", "label": "Axis_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_9", "label": "Reference_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_6", "label": "Extent_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_7", "label": "Node_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_8", "label": "Node_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_9", "label": "Node_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_6", "label": "Min_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_6", "label": "Max_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_10", "label": "Position_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_10", "label": "Location_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_10", "label": "Axis_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_10", "label": "Reference_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_11", "label": "Position_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_11", "label": "Location_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_11", "label": "Axis_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_11", "label": "Reference_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_12", "label": "Position_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_12", "label": "Location_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_12", "label": "Axis_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_12", "label": "Reference_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_3", "label": "PipingComponent_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_4", "label": "Presentation_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_7", "label": "Extent_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_13", "label": "Position_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_3", "label": "Scale_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_3", "label": "PersistentID_3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_4", "label": "ConnectionPoints_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_7", "label": "Min_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_7", "label": "Max_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_13", "label": "Location_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_13", "label": "Axis_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_13", "label": "Reference_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_8", "label": "Extent_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_10", "label": "Node_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_11", "label": "Node_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_12", "label": "Node_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_8", "label": "Min_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_8", "label": "Max_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_14", "label": "Position_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_14", "label": "Location_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_14", "label": "Axis_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_14", "label": "Reference_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_15", "label": "Position_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_15", "label": "Location_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_15", "label": "Axis_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_15", "label": "Reference_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_16", "label": "Position_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_16", "label": "Location_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_16", "label": "Axis_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_16", "label": "Reference_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_4", "label": "PipingComponent_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_5", "label": "Presentation_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_9", "label": "Extent_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_17", "label": "Position_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_4", "label": "Scale_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_4", "label": "PersistentID_4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_5", "label": "ConnectionPoints_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_9", "label": "Min_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_9", "label": "Max_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_17", "label": "Location_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_17", "label": "Axis_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_17", "label": "Reference_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_10", "label": "Extent_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_13", "label": "Node_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_14", "label": "Node_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_15", "label": "Node_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_10", "label": "Min_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_10", "label": "Max_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_18", "label": "Position_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_18", "label": "Location_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_18", "label": "Axis_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_18", "label": "Reference_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_19", "label": "Position_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_19", "label": "Location_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_19", "label": "Axis_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_19", "label": "Reference_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_20", "label": "Position_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_20", "label": "Location_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_20", "label": "Axis_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_20", "label": "Reference_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_5", "label": "PipingComponent_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_6", "label": "Presentation_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_11", "label": "Extent_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_21", "label": "Position_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_5", "label": "Scale_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_5", "label": "PersistentID_5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_6", "label": "ConnectionPoints_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_11", "label": "Min_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_11", "label": "Max_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_21", "label": "Location_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_21", "label": "Axis_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_21", "label": "Reference_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_12", "label": "Extent_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_16", "label": "Node_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_17", "label": "Node_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_18", "label": "Node_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_12", "label": "Min_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_12", "label": "Max_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_22", "label": "Position_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_22", "label": "Location_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_22", "label": "Axis_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_22", "label": "Reference_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_23", "label": "Position_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_23", "label": "Location_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_23", "label": "Axis_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_23", "label": "Reference_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_24", "label": "Position_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_24", "label": "Location_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_24", "label": "Axis_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_24", "label": "Reference_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_6", "label": "PipingComponent_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_7", "label": "Presentation_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_13", "label": "Extent_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_25", "label": "Position_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_6", "label": "Scale_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_6", "label": "PersistentID_6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_7", "label": "ConnectionPoints_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_13", "label": "Min_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_13", "label": "Max_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_25", "label": "Location_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_25", "label": "Axis_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_25", "label": "Reference_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_14", "label": "Extent_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_19", "label": "Node_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_20", "label": "Node_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_21", "label": "Node_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_14", "label": "Min_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_14", "label": "Max_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_26", "label": "Position_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_26", "label": "Location_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_26", "label": "Axis_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_26", "label": "Reference_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_27", "label": "Position_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_27", "label": "Location_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_27", "label": "Axis_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_27", "label": "Reference_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_28", "label": "Position_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_28", "label": "Location_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_28", "label": "Axis_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_28", "label": "Reference_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_7", "label": "PipingComponent_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_8", "label": "Presentation_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_15", "label": "Extent_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_29", "label": "Position_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_7", "label": "Scale_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_7", "label": "PersistentID_7", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_8", "label": "ConnectionPoints_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_15", "label": "Min_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_15", "label": "Max_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_29", "label": "Location_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_29", "label": "Axis_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_29", "label": "Reference_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_16", "label": "Extent_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_22", "label": "Node_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_23", "label": "Node_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_24", "label": "Node_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_16", "label": "Min_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_16", "label": "Max_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_30", "label": "Position_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_30", "label": "Location_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_30", "label": "Axis_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_30", "label": "Reference_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_31", "label": "Position_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_31", "label": "Location_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_31", "label": "Axis_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_31", "label": "Reference_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_32", "label": "Position_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_32", "label": "Location_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_32", "label": "Axis_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_32", "label": "Reference_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_8", "label": "PipingComponent_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_9", "label": "Presentation_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_17", "label": "Extent_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_33", "label": "Position_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_8", "label": "Scale_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_8", "label": "PersistentID_8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_9", "label": "ConnectionPoints_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_17", "label": "Min_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_17", "label": "Max_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_33", "label": "Location_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_33", "label": "Axis_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_33", "label": "Reference_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_18", "label": "Extent_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_25", "label": "Node_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_26", "label": "Node_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_27", "label": "Node_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_18", "label": "Min_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_18", "label": "Max_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_34", "label": "Position_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_34", "label": "Location_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_34", "label": "Axis_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_34", "label": "Reference_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_35", "label": "Position_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_35", "label": "Location_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_35", "label": "Axis_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_35", "label": "Reference_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_36", "label": "Position_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_36", "label": "Location_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_36", "label": "Axis_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_36", "label": "Reference_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_9", "label": "PipingComponent_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_10", "label": "Presentation_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_19", "label": "Extent_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_37", "label": "Position_37", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_9", "label": "Scale_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_9", "label": "PersistentID_9", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_10", "label": "ConnectionPoints_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_19", "label": "Min_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_19", "label": "Max_19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_37", "label": "Location_37", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_37", "label": "Axis_37", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_37", "label": "Reference_37", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_20", "label": "Extent_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_28", "label": "Node_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_29", "label": "Node_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_30", "label": "Node_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_20", "label": "Min_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_20", "label": "Max_20", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_38", "label": "Position_38", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_38", "label": "Location_38", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_38", "label": "Axis_38", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_38", "label": "Reference_38", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_39", "label": "Position_39", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_39", "label": "Location_39", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_39", "label": "Axis_39", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_39", "label": "Reference_39", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_40", "label": "Position_40", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_40", "label": "Location_40", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_40", "label": "Axis_40", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_40", "label": "Reference_40", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_10", "label": "PipingComponent_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_11", "label": "Presentation_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_21", "label": "Extent_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_41", "label": "Position_41", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_10", "label": "Scale_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_10", "label": "PersistentID_10", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_11", "label": "ConnectionPoints_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_21", "label": "Min_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_21", "label": "Max_21", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_41", "label": "Location_41", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_41", "label": "Axis_41", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_41", "label": "Reference_41", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_22", "label": "Extent_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_31", "label": "Node_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_32", "label": "Node_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_33", "label": "Node_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_22", "label": "Min_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_22", "label": "Max_22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_42", "label": "Position_42", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_42", "label": "Location_42", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_42", "label": "Axis_42", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_42", "label": "Reference_42", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_43", "label": "Position_43", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_43", "label": "Location_43", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_43", "label": "Axis_43", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_43", "label": "Reference_43", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_44", "label": "Position_44", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_44", "label": "Location_44", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_44", "label": "Axis_44", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_44", "label": "Reference_44", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_11", "label": "PipingComponent_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_12", "label": "Presentation_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_23", "label": "Extent_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_45", "label": "Position_45", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_11", "label": "Scale_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_11", "label": "PersistentID_11", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_12", "label": "ConnectionPoints_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_23", "label": "Min_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_23", "label": "Max_23", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_45", "label": "Location_45", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_45", "label": "Axis_45", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_45", "label": "Reference_45", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_24", "label": "Extent_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_34", "label": "Node_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_35", "label": "Node_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_36", "label": "Node_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_24", "label": "Min_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_24", "label": "Max_24", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_46", "label": "Position_46", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_46", "label": "Location_46", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_46", "label": "Axis_46", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_46", "label": "Reference_46", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_47", "label": "Position_47", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_47", "label": "Location_47", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_47", "label": "Axis_47", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_47", "label": "Reference_47", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_48", "label": "Position_48", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_48", "label": "Location_48", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_48", "label": "Axis_48", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_48", "label": "Reference_48", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_12", "label": "PipingComponent_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_13", "label": "Presentation_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_25", "label": "Extent_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_49", "label": "Position_49", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_12", "label": "Scale_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_12", "label": "PersistentID_12", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_13", "label": "ConnectionPoints_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_25", "label": "Min_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_25", "label": "Max_25", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_49", "label": "Location_49", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_49", "label": "Axis_49", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_49", "label": "Reference_49", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_26", "label": "Extent_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_37", "label": "Node_37", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_38", "label": "Node_38", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_39", "label": "Node_39", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_26", "label": "Min_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_26", "label": "Max_26", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_50", "label": "Position_50", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_50", "label": "Location_50", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_50", "label": "Axis_50", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_50", "label": "Reference_50", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_51", "label": "Position_51", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_51", "label": "Location_51", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_51", "label": "Axis_51", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_51", "label": "Reference_51", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_52", "label": "Position_52", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_52", "label": "Location_52", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_52", "label": "Axis_52", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_52", "label": "Reference_52", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_13", "label": "PipingComponent_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_14", "label": "Presentation_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_27", "label": "Extent_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_53", "label": "Position_53", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_13", "label": "Scale_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_13", "label": "PersistentID_13", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_14", "label": "ConnectionPoints_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_27", "label": "Min_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_27", "label": "Max_27", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_53", "label": "Location_53", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_53", "label": "Axis_53", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_53", "label": "Reference_53", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_28", "label": "Extent_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_40", "label": "Node_40", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_41", "label": "Node_41", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_42", "label": "Node_42", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_28", "label": "Min_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_28", "label": "Max_28", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_54", "label": "Position_54", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_54", "label": "Location_54", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_54", "label": "Axis_54", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_54", "label": "Reference_54", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_55", "label": "Position_55", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_55", "label": "Location_55", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_55", "label": "Axis_55", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_55", "label": "Reference_55", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_56", "label": "Position_56", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_56", "label": "Location_56", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_56", "label": "Axis_56", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_56", "label": "Reference_56", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_14", "label": "PipingComponent_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_15", "label": "Presentation_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_29", "label": "Extent_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_57", "label": "Position_57", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_14", "label": "Scale_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_14", "label": "PersistentID_14", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_15", "label": "ConnectionPoints_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_29", "label": "Min_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_29", "label": "Max_29", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_57", "label": "Location_57", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_57", "label": "Axis_57", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_57", "label": "Reference_57", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_30", "label": "Extent_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_43", "label": "Node_43", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_44", "label": "Node_44", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_45", "label": "Node_45", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_30", "label": "Min_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_30", "label": "Max_30", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_58", "label": "Position_58", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_58", "label": "Location_58", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_58", "label": "Axis_58", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_58", "label": "Reference_58", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_59", "label": "Position_59", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_59", "label": "Location_59", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_59", "label": "Axis_59", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_59", "label": "Reference_59", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_60", "label": "Position_60", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_60", "label": "Location_60", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_60", "label": "Axis_60", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_60", "label": "Reference_60", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_15", "label": "PipingComponent_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_16", "label": "Presentation_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_31", "label": "Extent_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_61", "label": "Position_61", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_15", "label": "Scale_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_15", "label": "PersistentID_15", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_16", "label": "ConnectionPoints_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_31", "label": "Min_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_31", "label": "Max_31", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_61", "label": "Location_61", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_61", "label": "Axis_61", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_61", "label": "Reference_61", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_32", "label": "Extent_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_46", "label": "Node_46", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_47", "label": "Node_47", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_48", "label": "Node_48", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_32", "label": "Min_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_32", "label": "Max_32", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_62", "label": "Position_62", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_62", "label": "Location_62", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_62", "label": "Axis_62", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_62", "label": "Reference_62", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_63", "label": "Position_63", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_63", "label": "Location_63", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_63", "label": "Axis_63", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_63", "label": "Reference_63", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_64", "label": "Position_64", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_64", "label": "Location_64", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_64", "label": "Axis_64", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_64", "label": "Reference_64", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_16", "label": "PipingComponent_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_17", "label": "Presentation_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_33", "label": "Extent_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_65", "label": "Position_65", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_16", "label": "Scale_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_16", "label": "PersistentID_16", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_17", "label": "ConnectionPoints_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_33", "label": "Min_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_33", "label": "Max_33", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_65", "label": "Location_65", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_65", "label": "Axis_65", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_65", "label": "Reference_65", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_34", "label": "Extent_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_49", "label": "Node_49", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_50", "label": "Node_50", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_51", "label": "Node_51", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_34", "label": "Min_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_34", "label": "Max_34", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_66", "label": "Position_66", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_66", "label": "Location_66", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_66", "label": "Axis_66", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_66", "label": "Reference_66", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_67", "label": "Position_67", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_67", "label": "Location_67", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_67", "label": "Axis_67", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_67", "label": "Reference_67", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_68", "label": "Position_68", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_68", "label": "Location_68", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_68", "label": "Axis_68", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_68", "label": "Reference_68", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PipingComponent_17", "label": "PipingComponent_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation_18", "label": "Presentation_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_35", "label": "Extent_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_69", "label": "Position_69", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale_17", "label": "Scale_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID_17", "label": "PersistentID_17", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints_18", "label": "ConnectionPoints_18", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_35", "label": "Min_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_35", "label": "Max_35", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_69", "label": "Location_69", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_69", "label": "Axis_69", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_69", "label": "Reference_69", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent_36", "label": "Extent_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_52", "label": "Node_52", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_53", "label": "Node_53", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node_54", "label": "Node_54", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min_36", "label": "Min_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max_36", "label": "Max_36", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_70", "label": "Position_70", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_70", "label": "Location_70", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_70", "label": "Axis_70", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_70", "label": "Reference_70", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_71", "label": "Position_71", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_71", "label": "Location_71", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_71", "label": "Axis_71", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_71", "label": "Reference_71", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position_72", "label": "Position_72", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location_72", "label": "Location_72", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis_72", "label": "Axis_72", "shape": "dot", "size": 10}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference_72", "label": "Reference_72", "shape": "dot", "size": 10}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMC_25", "label": "XMC_25", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Presentation", "label": "Presentation", "shape": "dot", "size": 14}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Extent", "label": "Extent", "shape": "dot", "size": 0}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Min", "label": "Min", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Max", "label": "Max", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Position", "label": "Position", "shape": "dot", "size": 0}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Location", "label": "Location", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Axis", "label": "Axis", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Reference", "label": "Reference", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ConnectionPoints", "label": "ConnectionPoints", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Node", "label": "Node", "shape": "dot", "size": 6}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_52", "label": "XMP_52", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Scale", "label": "Scale", "shape": "dot", "size": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PersistentID", "label": "PersistentID", "shape": "dot", "size": 4}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_60", "label": "XMP_60", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_64", "label": "XMP_64", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_157", "label": "XMP_157", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_164", "label": "XMP_164", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_185", "label": "XMP_185", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_276", "label": "XMP_276", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_280", "label": "XMP_280", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_284", "label": "XMP_284", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_299", "label": "XMP_299", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_303", "label": "XMP_303", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_307", "label": "XMP_307", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_338", "label": "XMP_338", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_467", "label": "XMP_467", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_482", "label": "XMP_482", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_489", "label": "XMP_489", "shape": "dot", "size": 40, "title": "PipingComponent"}, {"color": "#ff9933", "font": {"color": "white"}, "id": "XMP_524", "label": "XMP_524", "shape": "dot", "size": 40, "title": "PipingComponent"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "PipingComponent", "to": "Presentation_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "Extent_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "Position_1", "width": 1}, {"arrows": "to", "from": "PipingComponent", "to": "ConnectionPoints_1", "width": 1}, {"arrows": "to", "from": "Extent_1", "to": "Min_1", "width": 1}, {"arrows": "to", "from": "Extent_1", "to": "Max_1", "width": 1}, {"arrows": "to", "from": "Position_1", "to": "Location_1", "width": 1}, {"arrows": "to", "from": "Position_1", "to": "Axis_1", "width": 1}, {"arrows": "to", "from": "Position_1", "to": "Reference_1", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Extent_2", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Node_1", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Node_2", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_1", "to": "Node_3", "width": 1}, {"arrows": "to", "from": "Extent_2", "to": "Min_2", "width": 1}, {"arrows": "to", "from": "Extent_2", "to": "Max_2", "width": 1}, {"arrows": "to", "from": "Node_1", "to": "Position_2", "width": 1}, {"arrows": "to", "from": "Position_2", "to": "Location_2", "width": 1}, {"arrows": "to", "from": "Position_2", "to": "Axis_2", "width": 1}, {"arrows": "to", "from": "Position_2", "to": "Reference_2", "width": 1}, {"arrows": "to", "from": "Node_2", "to": "Position_3", "width": 1}, {"arrows": "to", "from": "Position_3", "to": "Location_3", "width": 1}, {"arrows": "to", "from": "Position_3", "to": "Axis_3", "width": 1}, {"arrows": "to", "from": "Position_3", "to": "Reference_3", "width": 1}, {"arrows": "to", "from": "Node_3", "to": "Position_4", "width": 1}, {"arrows": "to", "from": "Position_4", "to": "Location_4", "width": 1}, {"arrows": "to", "from": "Position_4", "to": "Axis_4", "width": 1}, {"arrows": "to", "from": "Position_4", "to": "Reference_4", "width": 1}, {"arrows": "to", "from": "PipingComponent_1", "to": "Presentation_2", "width": 1}, {"arrows": "to", "from": "PipingComponent_1", "to": "Extent_3", "width": 1}, {"arrows": "to", "from": "PipingComponent_1", "to": "Position_5", "width": 1}, {"arrows": "to", "from": "PipingComponent_1", "to": "Scale_1", "width": 1}, {"arrows": "to", "from": "PipingComponent_1", "to": "PersistentID_1", "width": 1}, {"arrows": "to", "from": "PipingComponent_1", "to": "ConnectionPoints_2", "width": 1}, {"arrows": "to", "from": "Extent_3", "to": "Min_3", "width": 1}, {"arrows": "to", "from": "Extent_3", "to": "Max_3", "width": 1}, {"arrows": "to", "from": "Position_5", "to": "Location_5", "width": 1}, {"arrows": "to", "from": "Position_5", "to": "Axis_5", "width": 1}, {"arrows": "to", "from": "Position_5", "to": "Reference_5", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_2", "to": "Extent_4", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_2", "to": "Node_4", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_2", "to": "Node_5", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_2", "to": "Node_6", "width": 1}, {"arrows": "to", "from": "Extent_4", "to": "Min_4", "width": 1}, {"arrows": "to", "from": "Extent_4", "to": "Max_4", "width": 1}, {"arrows": "to", "from": "Node_4", "to": "Position_6", "width": 1}, {"arrows": "to", "from": "Position_6", "to": "Location_6", "width": 1}, {"arrows": "to", "from": "Position_6", "to": "Axis_6", "width": 1}, {"arrows": "to", "from": "Position_6", "to": "Reference_6", "width": 1}, {"arrows": "to", "from": "Node_5", "to": "Position_7", "width": 1}, {"arrows": "to", "from": "Position_7", "to": "Location_7", "width": 1}, {"arrows": "to", "from": "Position_7", "to": "Axis_7", "width": 1}, {"arrows": "to", "from": "Position_7", "to": "Reference_7", "width": 1}, {"arrows": "to", "from": "Node_6", "to": "Position_8", "width": 1}, {"arrows": "to", "from": "Position_8", "to": "Location_8", "width": 1}, {"arrows": "to", "from": "Position_8", "to": "Axis_8", "width": 1}, {"arrows": "to", "from": "Position_8", "to": "Reference_8", "width": 1}, {"arrows": "to", "from": "PipingComponent_2", "to": "Presentation_3", "width": 1}, {"arrows": "to", "from": "PipingComponent_2", "to": "Extent_5", "width": 1}, {"arrows": "to", "from": "PipingComponent_2", "to": "Position_9", "width": 1}, {"arrows": "to", "from": "PipingComponent_2", "to": "Scale_2", "width": 1}, {"arrows": "to", "from": "PipingComponent_2", "to": "PersistentID_2", "width": 1}, {"arrows": "to", "from": "PipingComponent_2", "to": "ConnectionPoints_3", "width": 1}, {"arrows": "to", "from": "Extent_5", "to": "Min_5", "width": 1}, {"arrows": "to", "from": "Extent_5", "to": "Max_5", "width": 1}, {"arrows": "to", "from": "Position_9", "to": "Location_9", "width": 1}, {"arrows": "to", "from": "Position_9", "to": "Axis_9", "width": 1}, {"arrows": "to", "from": "Position_9", "to": "Reference_9", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_3", "to": "Extent_6", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_3", "to": "Node_7", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_3", "to": "Node_8", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_3", "to": "Node_9", "width": 1}, {"arrows": "to", "from": "Extent_6", "to": "Min_6", "width": 1}, {"arrows": "to", "from": "Extent_6", "to": "Max_6", "width": 1}, {"arrows": "to", "from": "Node_7", "to": "Position_10", "width": 1}, {"arrows": "to", "from": "Position_10", "to": "Location_10", "width": 1}, {"arrows": "to", "from": "Position_10", "to": "Axis_10", "width": 1}, {"arrows": "to", "from": "Position_10", "to": "Reference_10", "width": 1}, {"arrows": "to", "from": "Node_8", "to": "Position_11", "width": 1}, {"arrows": "to", "from": "Position_11", "to": "Location_11", "width": 1}, {"arrows": "to", "from": "Position_11", "to": "Axis_11", "width": 1}, {"arrows": "to", "from": "Position_11", "to": "Reference_11", "width": 1}, {"arrows": "to", "from": "Node_9", "to": "Position_12", "width": 1}, {"arrows": "to", "from": "Position_12", "to": "Location_12", "width": 1}, {"arrows": "to", "from": "Position_12", "to": "Axis_12", "width": 1}, {"arrows": "to", "from": "Position_12", "to": "Reference_12", "width": 1}, {"arrows": "to", "from": "PipingComponent_3", "to": "Presentation_4", "width": 1}, {"arrows": "to", "from": "PipingComponent_3", "to": "Extent_7", "width": 1}, {"arrows": "to", "from": "PipingComponent_3", "to": "Position_13", "width": 1}, {"arrows": "to", "from": "PipingComponent_3", "to": "Scale_3", "width": 1}, {"arrows": "to", "from": "PipingComponent_3", "to": "PersistentID_3", "width": 1}, {"arrows": "to", "from": "PipingComponent_3", "to": "ConnectionPoints_4", "width": 1}, {"arrows": "to", "from": "Extent_7", "to": "Min_7", "width": 1}, {"arrows": "to", "from": "Extent_7", "to": "Max_7", "width": 1}, {"arrows": "to", "from": "Position_13", "to": "Location_13", "width": 1}, {"arrows": "to", "from": "Position_13", "to": "Axis_13", "width": 1}, {"arrows": "to", "from": "Position_13", "to": "Reference_13", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_4", "to": "Extent_8", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_4", "to": "Node_10", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_4", "to": "Node_11", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_4", "to": "Node_12", "width": 1}, {"arrows": "to", "from": "Extent_8", "to": "Min_8", "width": 1}, {"arrows": "to", "from": "Extent_8", "to": "Max_8", "width": 1}, {"arrows": "to", "from": "Node_10", "to": "Position_14", "width": 1}, {"arrows": "to", "from": "Position_14", "to": "Location_14", "width": 1}, {"arrows": "to", "from": "Position_14", "to": "Axis_14", "width": 1}, {"arrows": "to", "from": "Position_14", "to": "Reference_14", "width": 1}, {"arrows": "to", "from": "Node_11", "to": "Position_15", "width": 1}, {"arrows": "to", "from": "Position_15", "to": "Location_15", "width": 1}, {"arrows": "to", "from": "Position_15", "to": "Axis_15", "width": 1}, {"arrows": "to", "from": "Position_15", "to": "Reference_15", "width": 1}, {"arrows": "to", "from": "Node_12", "to": "Position_16", "width": 1}, {"arrows": "to", "from": "Position_16", "to": "Location_16", "width": 1}, {"arrows": "to", "from": "Position_16", "to": "Axis_16", "width": 1}, {"arrows": "to", "from": "Position_16", "to": "Reference_16", "width": 1}, {"arrows": "to", "from": "PipingComponent_4", "to": "Presentation_5", "width": 1}, {"arrows": "to", "from": "PipingComponent_4", "to": "Extent_9", "width": 1}, {"arrows": "to", "from": "PipingComponent_4", "to": "Position_17", "width": 1}, {"arrows": "to", "from": "PipingComponent_4", "to": "Scale_4", "width": 1}, {"arrows": "to", "from": "PipingComponent_4", "to": "PersistentID_4", "width": 1}, {"arrows": "to", "from": "PipingComponent_4", "to": "ConnectionPoints_5", "width": 1}, {"arrows": "to", "from": "Extent_9", "to": "Min_9", "width": 1}, {"arrows": "to", "from": "Extent_9", "to": "Max_9", "width": 1}, {"arrows": "to", "from": "Position_17", "to": "Location_17", "width": 1}, {"arrows": "to", "from": "Position_17", "to": "Axis_17", "width": 1}, {"arrows": "to", "from": "Position_17", "to": "Reference_17", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_5", "to": "Extent_10", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_5", "to": "Node_13", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_5", "to": "Node_14", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_5", "to": "Node_15", "width": 1}, {"arrows": "to", "from": "Extent_10", "to": "Min_10", "width": 1}, {"arrows": "to", "from": "Extent_10", "to": "Max_10", "width": 1}, {"arrows": "to", "from": "Node_13", "to": "Position_18", "width": 1}, {"arrows": "to", "from": "Position_18", "to": "Location_18", "width": 1}, {"arrows": "to", "from": "Position_18", "to": "Axis_18", "width": 1}, {"arrows": "to", "from": "Position_18", "to": "Reference_18", "width": 1}, {"arrows": "to", "from": "Node_14", "to": "Position_19", "width": 1}, {"arrows": "to", "from": "Position_19", "to": "Location_19", "width": 1}, {"arrows": "to", "from": "Position_19", "to": "Axis_19", "width": 1}, {"arrows": "to", "from": "Position_19", "to": "Reference_19", "width": 1}, {"arrows": "to", "from": "Node_15", "to": "Position_20", "width": 1}, {"arrows": "to", "from": "Position_20", "to": "Location_20", "width": 1}, {"arrows": "to", "from": "Position_20", "to": "Axis_20", "width": 1}, {"arrows": "to", "from": "Position_20", "to": "Reference_20", "width": 1}, {"arrows": "to", "from": "PipingComponent_5", "to": "Presentation_6", "width": 1}, {"arrows": "to", "from": "PipingComponent_5", "to": "Extent_11", "width": 1}, {"arrows": "to", "from": "PipingComponent_5", "to": "Position_21", "width": 1}, {"arrows": "to", "from": "PipingComponent_5", "to": "Scale_5", "width": 1}, {"arrows": "to", "from": "PipingComponent_5", "to": "PersistentID_5", "width": 1}, {"arrows": "to", "from": "PipingComponent_5", "to": "ConnectionPoints_6", "width": 1}, {"arrows": "to", "from": "Extent_11", "to": "Min_11", "width": 1}, {"arrows": "to", "from": "Extent_11", "to": "Max_11", "width": 1}, {"arrows": "to", "from": "Position_21", "to": "Location_21", "width": 1}, {"arrows": "to", "from": "Position_21", "to": "Axis_21", "width": 1}, {"arrows": "to", "from": "Position_21", "to": "Reference_21", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_6", "to": "Extent_12", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_6", "to": "Node_16", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_6", "to": "Node_17", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_6", "to": "Node_18", "width": 1}, {"arrows": "to", "from": "Extent_12", "to": "Min_12", "width": 1}, {"arrows": "to", "from": "Extent_12", "to": "Max_12", "width": 1}, {"arrows": "to", "from": "Node_16", "to": "Position_22", "width": 1}, {"arrows": "to", "from": "Position_22", "to": "Location_22", "width": 1}, {"arrows": "to", "from": "Position_22", "to": "Axis_22", "width": 1}, {"arrows": "to", "from": "Position_22", "to": "Reference_22", "width": 1}, {"arrows": "to", "from": "Node_17", "to": "Position_23", "width": 1}, {"arrows": "to", "from": "Position_23", "to": "Location_23", "width": 1}, {"arrows": "to", "from": "Position_23", "to": "Axis_23", "width": 1}, {"arrows": "to", "from": "Position_23", "to": "Reference_23", "width": 1}, {"arrows": "to", "from": "Node_18", "to": "Position_24", "width": 1}, {"arrows": "to", "from": "Position_24", "to": "Location_24", "width": 1}, {"arrows": "to", "from": "Position_24", "to": "Axis_24", "width": 1}, {"arrows": "to", "from": "Position_24", "to": "Reference_24", "width": 1}, {"arrows": "to", "from": "PipingComponent_6", "to": "Presentation_7", "width": 1}, {"arrows": "to", "from": "PipingComponent_6", "to": "Extent_13", "width": 1}, {"arrows": "to", "from": "PipingComponent_6", "to": "Position_25", "width": 1}, {"arrows": "to", "from": "PipingComponent_6", "to": "Scale_6", "width": 1}, {"arrows": "to", "from": "PipingComponent_6", "to": "PersistentID_6", "width": 1}, {"arrows": "to", "from": "PipingComponent_6", "to": "ConnectionPoints_7", "width": 1}, {"arrows": "to", "from": "Extent_13", "to": "Min_13", "width": 1}, {"arrows": "to", "from": "Extent_13", "to": "Max_13", "width": 1}, {"arrows": "to", "from": "Position_25", "to": "Location_25", "width": 1}, {"arrows": "to", "from": "Position_25", "to": "Axis_25", "width": 1}, {"arrows": "to", "from": "Position_25", "to": "Reference_25", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_7", "to": "Extent_14", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_7", "to": "Node_19", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_7", "to": "Node_20", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_7", "to": "Node_21", "width": 1}, {"arrows": "to", "from": "Extent_14", "to": "Min_14", "width": 1}, {"arrows": "to", "from": "Extent_14", "to": "Max_14", "width": 1}, {"arrows": "to", "from": "Node_19", "to": "Position_26", "width": 1}, {"arrows": "to", "from": "Position_26", "to": "Location_26", "width": 1}, {"arrows": "to", "from": "Position_26", "to": "Axis_26", "width": 1}, {"arrows": "to", "from": "Position_26", "to": "Reference_26", "width": 1}, {"arrows": "to", "from": "Node_20", "to": "Position_27", "width": 1}, {"arrows": "to", "from": "Position_27", "to": "Location_27", "width": 1}, {"arrows": "to", "from": "Position_27", "to": "Axis_27", "width": 1}, {"arrows": "to", "from": "Position_27", "to": "Reference_27", "width": 1}, {"arrows": "to", "from": "Node_21", "to": "Position_28", "width": 1}, {"arrows": "to", "from": "Position_28", "to": "Location_28", "width": 1}, {"arrows": "to", "from": "Position_28", "to": "Axis_28", "width": 1}, {"arrows": "to", "from": "Position_28", "to": "Reference_28", "width": 1}, {"arrows": "to", "from": "PipingComponent_7", "to": "Presentation_8", "width": 1}, {"arrows": "to", "from": "PipingComponent_7", "to": "Extent_15", "width": 1}, {"arrows": "to", "from": "PipingComponent_7", "to": "Position_29", "width": 1}, {"arrows": "to", "from": "PipingComponent_7", "to": "Scale_7", "width": 1}, {"arrows": "to", "from": "PipingComponent_7", "to": "PersistentID_7", "width": 1}, {"arrows": "to", "from": "PipingComponent_7", "to": "ConnectionPoints_8", "width": 1}, {"arrows": "to", "from": "Extent_15", "to": "Min_15", "width": 1}, {"arrows": "to", "from": "Extent_15", "to": "Max_15", "width": 1}, {"arrows": "to", "from": "Position_29", "to": "Location_29", "width": 1}, {"arrows": "to", "from": "Position_29", "to": "Axis_29", "width": 1}, {"arrows": "to", "from": "Position_29", "to": "Reference_29", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_8", "to": "Extent_16", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_8", "to": "Node_22", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_8", "to": "Node_23", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_8", "to": "Node_24", "width": 1}, {"arrows": "to", "from": "Extent_16", "to": "Min_16", "width": 1}, {"arrows": "to", "from": "Extent_16", "to": "Max_16", "width": 1}, {"arrows": "to", "from": "Node_22", "to": "Position_30", "width": 1}, {"arrows": "to", "from": "Position_30", "to": "Location_30", "width": 1}, {"arrows": "to", "from": "Position_30", "to": "Axis_30", "width": 1}, {"arrows": "to", "from": "Position_30", "to": "Reference_30", "width": 1}, {"arrows": "to", "from": "Node_23", "to": "Position_31", "width": 1}, {"arrows": "to", "from": "Position_31", "to": "Location_31", "width": 1}, {"arrows": "to", "from": "Position_31", "to": "Axis_31", "width": 1}, {"arrows": "to", "from": "Position_31", "to": "Reference_31", "width": 1}, {"arrows": "to", "from": "Node_24", "to": "Position_32", "width": 1}, {"arrows": "to", "from": "Position_32", "to": "Location_32", "width": 1}, {"arrows": "to", "from": "Position_32", "to": "Axis_32", "width": 1}, {"arrows": "to", "from": "Position_32", "to": "Reference_32", "width": 1}, {"arrows": "to", "from": "PipingComponent_8", "to": "Presentation_9", "width": 1}, {"arrows": "to", "from": "PipingComponent_8", "to": "Extent_17", "width": 1}, {"arrows": "to", "from": "PipingComponent_8", "to": "Position_33", "width": 1}, {"arrows": "to", "from": "PipingComponent_8", "to": "Scale_8", "width": 1}, {"arrows": "to", "from": "PipingComponent_8", "to": "PersistentID_8", "width": 1}, {"arrows": "to", "from": "PipingComponent_8", "to": "ConnectionPoints_9", "width": 1}, {"arrows": "to", "from": "Extent_17", "to": "Min_17", "width": 1}, {"arrows": "to", "from": "Extent_17", "to": "Max_17", "width": 1}, {"arrows": "to", "from": "Position_33", "to": "Location_33", "width": 1}, {"arrows": "to", "from": "Position_33", "to": "Axis_33", "width": 1}, {"arrows": "to", "from": "Position_33", "to": "Reference_33", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_9", "to": "Extent_18", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_9", "to": "Node_25", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_9", "to": "Node_26", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_9", "to": "Node_27", "width": 1}, {"arrows": "to", "from": "Extent_18", "to": "Min_18", "width": 1}, {"arrows": "to", "from": "Extent_18", "to": "Max_18", "width": 1}, {"arrows": "to", "from": "Node_25", "to": "Position_34", "width": 1}, {"arrows": "to", "from": "Position_34", "to": "Location_34", "width": 1}, {"arrows": "to", "from": "Position_34", "to": "Axis_34", "width": 1}, {"arrows": "to", "from": "Position_34", "to": "Reference_34", "width": 1}, {"arrows": "to", "from": "Node_26", "to": "Position_35", "width": 1}, {"arrows": "to", "from": "Position_35", "to": "Location_35", "width": 1}, {"arrows": "to", "from": "Position_35", "to": "Axis_35", "width": 1}, {"arrows": "to", "from": "Position_35", "to": "Reference_35", "width": 1}, {"arrows": "to", "from": "Node_27", "to": "Position_36", "width": 1}, {"arrows": "to", "from": "Position_36", "to": "Location_36", "width": 1}, {"arrows": "to", "from": "Position_36", "to": "Axis_36", "width": 1}, {"arrows": "to", "from": "Position_36", "to": "Reference_36", "width": 1}, {"arrows": "to", "from": "PipingComponent_9", "to": "Presentation_10", "width": 1}, {"arrows": "to", "from": "PipingComponent_9", "to": "Extent_19", "width": 1}, {"arrows": "to", "from": "PipingComponent_9", "to": "Position_37", "width": 1}, {"arrows": "to", "from": "PipingComponent_9", "to": "Scale_9", "width": 1}, {"arrows": "to", "from": "PipingComponent_9", "to": "PersistentID_9", "width": 1}, {"arrows": "to", "from": "PipingComponent_9", "to": "ConnectionPoints_10", "width": 1}, {"arrows": "to", "from": "Extent_19", "to": "Min_19", "width": 1}, {"arrows": "to", "from": "Extent_19", "to": "Max_19", "width": 1}, {"arrows": "to", "from": "Position_37", "to": "Location_37", "width": 1}, {"arrows": "to", "from": "Position_37", "to": "Axis_37", "width": 1}, {"arrows": "to", "from": "Position_37", "to": "Reference_37", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_10", "to": "Extent_20", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_10", "to": "Node_28", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_10", "to": "Node_29", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_10", "to": "Node_30", "width": 1}, {"arrows": "to", "from": "Extent_20", "to": "Min_20", "width": 1}, {"arrows": "to", "from": "Extent_20", "to": "Max_20", "width": 1}, {"arrows": "to", "from": "Node_28", "to": "Position_38", "width": 1}, {"arrows": "to", "from": "Position_38", "to": "Location_38", "width": 1}, {"arrows": "to", "from": "Position_38", "to": "Axis_38", "width": 1}, {"arrows": "to", "from": "Position_38", "to": "Reference_38", "width": 1}, {"arrows": "to", "from": "Node_29", "to": "Position_39", "width": 1}, {"arrows": "to", "from": "Position_39", "to": "Location_39", "width": 1}, {"arrows": "to", "from": "Position_39", "to": "Axis_39", "width": 1}, {"arrows": "to", "from": "Position_39", "to": "Reference_39", "width": 1}, {"arrows": "to", "from": "Node_30", "to": "Position_40", "width": 1}, {"arrows": "to", "from": "Position_40", "to": "Location_40", "width": 1}, {"arrows": "to", "from": "Position_40", "to": "Axis_40", "width": 1}, {"arrows": "to", "from": "Position_40", "to": "Reference_40", "width": 1}, {"arrows": "to", "from": "PipingComponent_10", "to": "Presentation_11", "width": 1}, {"arrows": "to", "from": "PipingComponent_10", "to": "Extent_21", "width": 1}, {"arrows": "to", "from": "PipingComponent_10", "to": "Position_41", "width": 1}, {"arrows": "to", "from": "PipingComponent_10", "to": "Scale_10", "width": 1}, {"arrows": "to", "from": "PipingComponent_10", "to": "PersistentID_10", "width": 1}, {"arrows": "to", "from": "PipingComponent_10", "to": "ConnectionPoints_11", "width": 1}, {"arrows": "to", "from": "Extent_21", "to": "Min_21", "width": 1}, {"arrows": "to", "from": "Extent_21", "to": "Max_21", "width": 1}, {"arrows": "to", "from": "Position_41", "to": "Location_41", "width": 1}, {"arrows": "to", "from": "Position_41", "to": "Axis_41", "width": 1}, {"arrows": "to", "from": "Position_41", "to": "Reference_41", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_11", "to": "Extent_22", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_11", "to": "Node_31", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_11", "to": "Node_32", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_11", "to": "Node_33", "width": 1}, {"arrows": "to", "from": "Extent_22", "to": "Min_22", "width": 1}, {"arrows": "to", "from": "Extent_22", "to": "Max_22", "width": 1}, {"arrows": "to", "from": "Node_31", "to": "Position_42", "width": 1}, {"arrows": "to", "from": "Position_42", "to": "Location_42", "width": 1}, {"arrows": "to", "from": "Position_42", "to": "Axis_42", "width": 1}, {"arrows": "to", "from": "Position_42", "to": "Reference_42", "width": 1}, {"arrows": "to", "from": "Node_32", "to": "Position_43", "width": 1}, {"arrows": "to", "from": "Position_43", "to": "Location_43", "width": 1}, {"arrows": "to", "from": "Position_43", "to": "Axis_43", "width": 1}, {"arrows": "to", "from": "Position_43", "to": "Reference_43", "width": 1}, {"arrows": "to", "from": "Node_33", "to": "Position_44", "width": 1}, {"arrows": "to", "from": "Position_44", "to": "Location_44", "width": 1}, {"arrows": "to", "from": "Position_44", "to": "Axis_44", "width": 1}, {"arrows": "to", "from": "Position_44", "to": "Reference_44", "width": 1}, {"arrows": "to", "from": "PipingComponent_11", "to": "Presentation_12", "width": 1}, {"arrows": "to", "from": "PipingComponent_11", "to": "Extent_23", "width": 1}, {"arrows": "to", "from": "PipingComponent_11", "to": "Position_45", "width": 1}, {"arrows": "to", "from": "PipingComponent_11", "to": "Scale_11", "width": 1}, {"arrows": "to", "from": "PipingComponent_11", "to": "PersistentID_11", "width": 1}, {"arrows": "to", "from": "PipingComponent_11", "to": "ConnectionPoints_12", "width": 1}, {"arrows": "to", "from": "Extent_23", "to": "Min_23", "width": 1}, {"arrows": "to", "from": "Extent_23", "to": "Max_23", "width": 1}, {"arrows": "to", "from": "Position_45", "to": "Location_45", "width": 1}, {"arrows": "to", "from": "Position_45", "to": "Axis_45", "width": 1}, {"arrows": "to", "from": "Position_45", "to": "Reference_45", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_12", "to": "Extent_24", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_12", "to": "Node_34", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_12", "to": "Node_35", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_12", "to": "Node_36", "width": 1}, {"arrows": "to", "from": "Extent_24", "to": "Min_24", "width": 1}, {"arrows": "to", "from": "Extent_24", "to": "Max_24", "width": 1}, {"arrows": "to", "from": "Node_34", "to": "Position_46", "width": 1}, {"arrows": "to", "from": "Position_46", "to": "Location_46", "width": 1}, {"arrows": "to", "from": "Position_46", "to": "Axis_46", "width": 1}, {"arrows": "to", "from": "Position_46", "to": "Reference_46", "width": 1}, {"arrows": "to", "from": "Node_35", "to": "Position_47", "width": 1}, {"arrows": "to", "from": "Position_47", "to": "Location_47", "width": 1}, {"arrows": "to", "from": "Position_47", "to": "Axis_47", "width": 1}, {"arrows": "to", "from": "Position_47", "to": "Reference_47", "width": 1}, {"arrows": "to", "from": "Node_36", "to": "Position_48", "width": 1}, {"arrows": "to", "from": "Position_48", "to": "Location_48", "width": 1}, {"arrows": "to", "from": "Position_48", "to": "Axis_48", "width": 1}, {"arrows": "to", "from": "Position_48", "to": "Reference_48", "width": 1}, {"arrows": "to", "from": "PipingComponent_12", "to": "Presentation_13", "width": 1}, {"arrows": "to", "from": "PipingComponent_12", "to": "Extent_25", "width": 1}, {"arrows": "to", "from": "PipingComponent_12", "to": "Position_49", "width": 1}, {"arrows": "to", "from": "PipingComponent_12", "to": "Scale_12", "width": 1}, {"arrows": "to", "from": "PipingComponent_12", "to": "PersistentID_12", "width": 1}, {"arrows": "to", "from": "PipingComponent_12", "to": "ConnectionPoints_13", "width": 1}, {"arrows": "to", "from": "Extent_25", "to": "Min_25", "width": 1}, {"arrows": "to", "from": "Extent_25", "to": "Max_25", "width": 1}, {"arrows": "to", "from": "Position_49", "to": "Location_49", "width": 1}, {"arrows": "to", "from": "Position_49", "to": "Axis_49", "width": 1}, {"arrows": "to", "from": "Position_49", "to": "Reference_49", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_13", "to": "Extent_26", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_13", "to": "Node_37", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_13", "to": "Node_38", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_13", "to": "Node_39", "width": 1}, {"arrows": "to", "from": "Extent_26", "to": "Min_26", "width": 1}, {"arrows": "to", "from": "Extent_26", "to": "Max_26", "width": 1}, {"arrows": "to", "from": "Node_37", "to": "Position_50", "width": 1}, {"arrows": "to", "from": "Position_50", "to": "Location_50", "width": 1}, {"arrows": "to", "from": "Position_50", "to": "Axis_50", "width": 1}, {"arrows": "to", "from": "Position_50", "to": "Reference_50", "width": 1}, {"arrows": "to", "from": "Node_38", "to": "Position_51", "width": 1}, {"arrows": "to", "from": "Position_51", "to": "Location_51", "width": 1}, {"arrows": "to", "from": "Position_51", "to": "Axis_51", "width": 1}, {"arrows": "to", "from": "Position_51", "to": "Reference_51", "width": 1}, {"arrows": "to", "from": "Node_39", "to": "Position_52", "width": 1}, {"arrows": "to", "from": "Position_52", "to": "Location_52", "width": 1}, {"arrows": "to", "from": "Position_52", "to": "Axis_52", "width": 1}, {"arrows": "to", "from": "Position_52", "to": "Reference_52", "width": 1}, {"arrows": "to", "from": "PipingComponent_13", "to": "Presentation_14", "width": 1}, {"arrows": "to", "from": "PipingComponent_13", "to": "Extent_27", "width": 1}, {"arrows": "to", "from": "PipingComponent_13", "to": "Position_53", "width": 1}, {"arrows": "to", "from": "PipingComponent_13", "to": "Scale_13", "width": 1}, {"arrows": "to", "from": "PipingComponent_13", "to": "PersistentID_13", "width": 1}, {"arrows": "to", "from": "PipingComponent_13", "to": "ConnectionPoints_14", "width": 1}, {"arrows": "to", "from": "Extent_27", "to": "Min_27", "width": 1}, {"arrows": "to", "from": "Extent_27", "to": "Max_27", "width": 1}, {"arrows": "to", "from": "Position_53", "to": "Location_53", "width": 1}, {"arrows": "to", "from": "Position_53", "to": "Axis_53", "width": 1}, {"arrows": "to", "from": "Position_53", "to": "Reference_53", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_14", "to": "Extent_28", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_14", "to": "Node_40", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_14", "to": "Node_41", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_14", "to": "Node_42", "width": 1}, {"arrows": "to", "from": "Extent_28", "to": "Min_28", "width": 1}, {"arrows": "to", "from": "Extent_28", "to": "Max_28", "width": 1}, {"arrows": "to", "from": "Node_40", "to": "Position_54", "width": 1}, {"arrows": "to", "from": "Position_54", "to": "Location_54", "width": 1}, {"arrows": "to", "from": "Position_54", "to": "Axis_54", "width": 1}, {"arrows": "to", "from": "Position_54", "to": "Reference_54", "width": 1}, {"arrows": "to", "from": "Node_41", "to": "Position_55", "width": 1}, {"arrows": "to", "from": "Position_55", "to": "Location_55", "width": 1}, {"arrows": "to", "from": "Position_55", "to": "Axis_55", "width": 1}, {"arrows": "to", "from": "Position_55", "to": "Reference_55", "width": 1}, {"arrows": "to", "from": "Node_42", "to": "Position_56", "width": 1}, {"arrows": "to", "from": "Position_56", "to": "Location_56", "width": 1}, {"arrows": "to", "from": "Position_56", "to": "Axis_56", "width": 1}, {"arrows": "to", "from": "Position_56", "to": "Reference_56", "width": 1}, {"arrows": "to", "from": "PipingComponent_14", "to": "Presentation_15", "width": 1}, {"arrows": "to", "from": "PipingComponent_14", "to": "Extent_29", "width": 1}, {"arrows": "to", "from": "PipingComponent_14", "to": "Position_57", "width": 1}, {"arrows": "to", "from": "PipingComponent_14", "to": "Scale_14", "width": 1}, {"arrows": "to", "from": "PipingComponent_14", "to": "PersistentID_14", "width": 1}, {"arrows": "to", "from": "PipingComponent_14", "to": "ConnectionPoints_15", "width": 1}, {"arrows": "to", "from": "Extent_29", "to": "Min_29", "width": 1}, {"arrows": "to", "from": "Extent_29", "to": "Max_29", "width": 1}, {"arrows": "to", "from": "Position_57", "to": "Location_57", "width": 1}, {"arrows": "to", "from": "Position_57", "to": "Axis_57", "width": 1}, {"arrows": "to", "from": "Position_57", "to": "Reference_57", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_15", "to": "Extent_30", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_15", "to": "Node_43", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_15", "to": "Node_44", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_15", "to": "Node_45", "width": 1}, {"arrows": "to", "from": "Extent_30", "to": "Min_30", "width": 1}, {"arrows": "to", "from": "Extent_30", "to": "Max_30", "width": 1}, {"arrows": "to", "from": "Node_43", "to": "Position_58", "width": 1}, {"arrows": "to", "from": "Position_58", "to": "Location_58", "width": 1}, {"arrows": "to", "from": "Position_58", "to": "Axis_58", "width": 1}, {"arrows": "to", "from": "Position_58", "to": "Reference_58", "width": 1}, {"arrows": "to", "from": "Node_44", "to": "Position_59", "width": 1}, {"arrows": "to", "from": "Position_59", "to": "Location_59", "width": 1}, {"arrows": "to", "from": "Position_59", "to": "Axis_59", "width": 1}, {"arrows": "to", "from": "Position_59", "to": "Reference_59", "width": 1}, {"arrows": "to", "from": "Node_45", "to": "Position_60", "width": 1}, {"arrows": "to", "from": "Position_60", "to": "Location_60", "width": 1}, {"arrows": "to", "from": "Position_60", "to": "Axis_60", "width": 1}, {"arrows": "to", "from": "Position_60", "to": "Reference_60", "width": 1}, {"arrows": "to", "from": "PipingComponent_15", "to": "Presentation_16", "width": 1}, {"arrows": "to", "from": "PipingComponent_15", "to": "Extent_31", "width": 1}, {"arrows": "to", "from": "PipingComponent_15", "to": "Position_61", "width": 1}, {"arrows": "to", "from": "PipingComponent_15", "to": "Scale_15", "width": 1}, {"arrows": "to", "from": "PipingComponent_15", "to": "PersistentID_15", "width": 1}, {"arrows": "to", "from": "PipingComponent_15", "to": "ConnectionPoints_16", "width": 1}, {"arrows": "to", "from": "Extent_31", "to": "Min_31", "width": 1}, {"arrows": "to", "from": "Extent_31", "to": "Max_31", "width": 1}, {"arrows": "to", "from": "Position_61", "to": "Location_61", "width": 1}, {"arrows": "to", "from": "Position_61", "to": "Axis_61", "width": 1}, {"arrows": "to", "from": "Position_61", "to": "Reference_61", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_16", "to": "Extent_32", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_16", "to": "Node_46", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_16", "to": "Node_47", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_16", "to": "Node_48", "width": 1}, {"arrows": "to", "from": "Extent_32", "to": "Min_32", "width": 1}, {"arrows": "to", "from": "Extent_32", "to": "Max_32", "width": 1}, {"arrows": "to", "from": "Node_46", "to": "Position_62", "width": 1}, {"arrows": "to", "from": "Position_62", "to": "Location_62", "width": 1}, {"arrows": "to", "from": "Position_62", "to": "Axis_62", "width": 1}, {"arrows": "to", "from": "Position_62", "to": "Reference_62", "width": 1}, {"arrows": "to", "from": "Node_47", "to": "Position_63", "width": 1}, {"arrows": "to", "from": "Position_63", "to": "Location_63", "width": 1}, {"arrows": "to", "from": "Position_63", "to": "Axis_63", "width": 1}, {"arrows": "to", "from": "Position_63", "to": "Reference_63", "width": 1}, {"arrows": "to", "from": "Node_48", "to": "Position_64", "width": 1}, {"arrows": "to", "from": "Position_64", "to": "Location_64", "width": 1}, {"arrows": "to", "from": "Position_64", "to": "Axis_64", "width": 1}, {"arrows": "to", "from": "Position_64", "to": "Reference_64", "width": 1}, {"arrows": "to", "from": "PipingComponent_16", "to": "Presentation_17", "width": 1}, {"arrows": "to", "from": "PipingComponent_16", "to": "Extent_33", "width": 1}, {"arrows": "to", "from": "PipingComponent_16", "to": "Position_65", "width": 1}, {"arrows": "to", "from": "PipingComponent_16", "to": "Scale_16", "width": 1}, {"arrows": "to", "from": "PipingComponent_16", "to": "PersistentID_16", "width": 1}, {"arrows": "to", "from": "PipingComponent_16", "to": "ConnectionPoints_17", "width": 1}, {"arrows": "to", "from": "Extent_33", "to": "Min_33", "width": 1}, {"arrows": "to", "from": "Extent_33", "to": "Max_33", "width": 1}, {"arrows": "to", "from": "Position_65", "to": "Location_65", "width": 1}, {"arrows": "to", "from": "Position_65", "to": "Axis_65", "width": 1}, {"arrows": "to", "from": "Position_65", "to": "Reference_65", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_17", "to": "Extent_34", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_17", "to": "Node_49", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_17", "to": "Node_50", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_17", "to": "Node_51", "width": 1}, {"arrows": "to", "from": "Extent_34", "to": "Min_34", "width": 1}, {"arrows": "to", "from": "Extent_34", "to": "Max_34", "width": 1}, {"arrows": "to", "from": "Node_49", "to": "Position_66", "width": 1}, {"arrows": "to", "from": "Position_66", "to": "Location_66", "width": 1}, {"arrows": "to", "from": "Position_66", "to": "Axis_66", "width": 1}, {"arrows": "to", "from": "Position_66", "to": "Reference_66", "width": 1}, {"arrows": "to", "from": "Node_50", "to": "Position_67", "width": 1}, {"arrows": "to", "from": "Position_67", "to": "Location_67", "width": 1}, {"arrows": "to", "from": "Position_67", "to": "Axis_67", "width": 1}, {"arrows": "to", "from": "Position_67", "to": "Reference_67", "width": 1}, {"arrows": "to", "from": "Node_51", "to": "Position_68", "width": 1}, {"arrows": "to", "from": "Position_68", "to": "Location_68", "width": 1}, {"arrows": "to", "from": "Position_68", "to": "Axis_68", "width": 1}, {"arrows": "to", "from": "Position_68", "to": "Reference_68", "width": 1}, {"arrows": "to", "from": "PipingComponent_17", "to": "Presentation_18", "width": 1}, {"arrows": "to", "from": "PipingComponent_17", "to": "Extent_35", "width": 1}, {"arrows": "to", "from": "PipingComponent_17", "to": "Position_69", "width": 1}, {"arrows": "to", "from": "PipingComponent_17", "to": "Scale_17", "width": 1}, {"arrows": "to", "from": "PipingComponent_17", "to": "PersistentID_17", "width": 1}, {"arrows": "to", "from": "PipingComponent_17", "to": "ConnectionPoints_18", "width": 1}, {"arrows": "to", "from": "Extent_35", "to": "Min_35", "width": 1}, {"arrows": "to", "from": "Extent_35", "to": "Max_35", "width": 1}, {"arrows": "to", "from": "Position_69", "to": "Location_69", "width": 1}, {"arrows": "to", "from": "Position_69", "to": "Axis_69", "width": 1}, {"arrows": "to", "from": "Position_69", "to": "Reference_69", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_18", "to": "Extent_36", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_18", "to": "Node_52", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_18", "to": "Node_53", "width": 1}, {"arrows": "to", "from": "ConnectionPoints_18", "to": "Node_54", "width": 1}, {"arrows": "to", "from": "Extent_36", "to": "Min_36", "width": 1}, {"arrows": "to", "from": "Extent_36", "to": "Max_36", "width": 1}, {"arrows": "to", "from": "Node_52", "to": "Position_70", "width": 1}, {"arrows": "to", "from": "Position_70", "to": "Location_70", "width": 1}, {"arrows": "to", "from": "Position_70", "to": "Axis_70", "width": 1}, {"arrows": "to", "from": "Position_70", "to": "Reference_70", "width": 1}, {"arrows": "to", "from": "Node_53", "to": "Position_71", "width": 1}, {"arrows": "to", "from": "Position_71", "to": "Location_71", "width": 1}, {"arrows": "to", "from": "Position_71", "to": "Axis_71", "width": 1}, {"arrows": "to", "from": "Position_71", "to": "Reference_71", "width": 1}, {"arrows": "to", "from": "Node_54", "to": "Position_72", "width": 1}, {"arrows": "to", "from": "Position_72", "to": "Location_72", "width": 1}, {"arrows": "to", "from": "Position_72", "to": "Axis_72", "width": 1}, {"arrows": "to", "from": "Position_72", "to": "Reference_72", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
