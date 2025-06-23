@@ -10,5 +10,4 @@ This repo holds everything used in my master thesis on a **graph-centric, DEXPI-
 | **Graph_Isomorphism**    | HTML files with the smaller piping sub-graphs that were detected as repeating patterns (graph-isomorphism results). |
 | **P&ID**                 | Images (SVG/PNG) of the P&IDs that were automatically reconstructed from the DEXPI data. |
 | **Spagetti**             | All code. `Main.py` runs the whole pipeline. Inside this folder, **Process_dexpi/** contains the step-by-step scripts used in the thesis, including `elementsearch.py` for quick XML lookup. |
-| `dexpi.png`              | A picture showing how a raw DEXPI export looks if you plot only the geometry lines. |
 
