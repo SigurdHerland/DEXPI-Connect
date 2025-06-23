@@ -40,3 +40,15 @@
 ---
 
 ## Repository layout
+
+DEXPI-Connect/
+├── Final Network Graphs/      # High-level knowledge-graphs (interactive HTML)
+├── Graph_Isomorphism/         # Detected piping sub-graphs (interactive HTML)
+├── P&ID/                      # Reconstructed P&ID images (SVG/PNG)
+├── Spagetti/                  # Source code
+│   ├── Main.py                # Entry point for the full pipeline
+│   └── Process_dexpi/         # Step-wise modules used in the thesis
+│       ├── elementsearch.py   # Helper for querying raw XML
+│       └── …                  # 02_parse, 03_connect_nozzles, 04_match_orphans, …
+└── dexpi.png                  # “raw-lines only” teaser image
+
