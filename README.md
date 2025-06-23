@@ -1,54 +1,14 @@
-# DEXPI-Connect  
-*A graph-centric, DEXPI-based pipeline for smarter P&ID engineering*  
-**Master’s Thesis — NTNU, 2025 — Sigurd Herland**
+# DEXPI-Connect (Master Thesis code dump)
 
-> Parse a raw **COMOS DEXPI** export → build a **fully connected knowledge-graph** → explore it in your browser → hand back a **re-drawn P&ID** for verification.  
-> Everything that powered the thesis is here: code, graphs, images, and validation artefacts.
+This repo holds everything used in my master thesis on a **graph-centric, DEXPI-based approach to P&ID engineering design**.
 
----
+## What’s here
 
-## 📑 Table of contents
-1. [Why this project?](#why-this-project)
-2. [Repository layout](#repository-layout)
-3. [Quick start](#quick-start)
-4. [Pipeline in five steps](#pipeline-in-five-steps)
-5. [Validation criteria](#validation-criteria)
-6. [Screenshots](#screenshots)
-7. [Roadmap](#roadmap)
-8. [Contributing](#contributing)
-9. [Licence](#licence)
-10. [Citation](#citation)
-
----
-
-## Why this project?
-* **DEXPI is rich –** but raw XML is hard to read and often missing links.  
-* **Graphs are expressive –** once the P&ID is a graph, we can query, validate and visualise it.  
-* **Engineers want trust –** they need to see that the generated graph really matches their drawing.
-
-**DEXPI-Connect** delivers all three:
-
-| Feature | What it gives you |
-|---------|------------------|
-| **Graph builder** | Extracts all lines *and* semantic objects from COMOS DEXPI and connects the dots. |
-| **Connection inference** | Finds orphan valves, nozzles, off-page refs and joins them intelligently. |
-| **Isomorphism search** | Detects repeated piping modules (copy-pasted skids, standard loops …). |
-| **Interactive HTML** | Zero-install graph explorer – pan/zoom, highlight systems, inspect tags. |
-| **P&ID regeneration** | Auto-draws centre-lines back into SVG/PNG for side-by-side QA. |
-| **Validation suite** | Ten quantitative checks (semantic, topological, completeness). |
-
----
-
-## Repository layout
-
-DEXPI-Connect/
-├── Final Network Graphs/      # High-level knowledge-graphs (interactive HTML)
-├── Graph_Isomorphism/         # Detected piping sub-graphs (interactive HTML)
-├── P&ID/                      # Reconstructed P&ID images (SVG/PNG)
-├── Spagetti/                  # Source code
-│   ├── Main.py                # Entry point for the full pipeline
-│   └── Process_dexpi/         # Step-wise modules used in the thesis
-│       ├── elementsearch.py   # Helper for querying raw XML
-│       └── …                  # 02_parse, 03_connect_nozzles, 04_match_orphans, …
-└── dexpi.png                  # “raw-lines only” teaser image
+| Folder / file            | What it contains |
+|--------------------------|------------------|
+| **Final Network Graphs** | Interactive HTML files showing the full “high-level” knowledge graphs generated from each DEXPI file. Open them in any browser. |
+| **Graph_Isomorphism**    | HTML files with the smaller piping sub-graphs that were detected as repeating patterns (graph-isomorphism results). |
+| **P&ID**                 | Images (SVG/PNG) of the P&IDs that were automatically reconstructed from the DEXPI data. |
+| **Spagetti**             | All code. `Main.py` runs the whole pipeline. Inside this folder, **Process_dexpi/** contains the step-by-step scripts used in the thesis, including `elementsearch.py` for quick XML lookup. |
+| `dexpi.png`              | A picture showing how a raw DEXPI export looks if you plot only the geometry lines. |
 
